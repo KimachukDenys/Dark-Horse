@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MarketName {
+  STEAM
+  CSFLOAT
+  DMARKET
+  SKINPORT
+  CSMONEY
+  TRADEIT
+}
+
+model Market {
+  id           Int    @id @default(autoincrement())
+  name         MarketName @unique 
+
+  wallet       Wallet?
+  transactions ItemTransaction[]
+}
+
+enum Currency {
+  USD
+  UAH
+  EUR
+}
+
+model Wallet {
+  id            Int @id @default(autoincrement())
+  balance       Decimal  @db.Decimal(18, 6)
+  currency      Currency @default(USD)
+  market        Market @relation(fields: [marketId], references: [id])
+  marketId      Int    @unique
+}
+
+model Item {
+  id            Int @id @default(autoincrement())
+  name          String @unique
+  transactions  ItemTransaction[]
+}
+
+enum TransactionType {
+  BUY
+  SELL
+}
+
+enum Wear {
+  FN
+  MW
+  FT
+  WW
+  BS
+}
+
+enum SpecialType {
+  NORMAL
+  STATTRAK
+  SOUVENIR
+  // STICKER
+  // CHARM
+  // CASE
+}
+
+enum Status {
+  PENDING
+  INVENTORY
+  LISTING
+  SOLD
+}
+
+model ItemTransaction {
+  id Int @id @default(autoincrement())
+
+  special    SpecialType @default(NORMAL)
+  wear       Wear        @default(FN)
+  floatValue Decimal     @db.Decimal(18, 14)
+
+  price         Decimal         @db.Decimal(18, 2)
+  type          TransactionType @default(BUY)
+  quantity      Int
+  itemStatus    Status          @default(PENDING)
+  itemCurrency  Currency        @default(USD)
+
+  csFloatId       String?
+  steamAssetId    String?
+  steamInstanceId String?
+  steamClassId    String?
+
+  market   Market @relation(fields: [marketId], references: [id])
+  marketId Int
+
+  item   Item @relation(fields: [itemId], references: [id])
+  itemId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  goalTransactions GoalTransaction[]
+}
+
+model Goal {
+  id Int @id @default(autoincrement())
+
+  name             String
+  description      String?
+  targetInvestment Decimal @db.Decimal(18, 2)
+  targetReturn     Decimal @db.Decimal(18, 2)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
+
+  goalTransactions GoalTransaction[]
+}
+
+model GoalTransaction {
+  id Int @id @default(autoincrement())
+
+  goal   Goal @relation(fields: [goalId], references: [id])
+  goalId Int
+
+  transactions  ItemTransaction @relation(fields: [transactionId], references: [id])
+  transactionId Int
+
+  @@unique([goalId, transactionId])
+}
