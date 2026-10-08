@@ -1,0 +1,133 @@
+.transaction-card {
+  width: 860px;
+  max-width: 980px;
+  margin: 20px auto;
+  padding: 40px;
+  border: 2px solid var(--bg-black);
+  border-radius: 30px;
+  background-color: var(--bg-black);
+  box-shadow: var(--shadow);
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.transaction-body {
+  display: flex;
+  gap: 20px;
+}
+
+.transaction-image {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  grid-template-rows: repeat(1, 1fr);
+  justify-items: center;
+  align-items: center;
+  width: 180px;
+  min-width: 180px;
+}
+
+.image-back-shadow {
+  grid-area: 1 / 1 / 2 / 2;
+  width: 25px;
+  height: 25px;
+  border-radius: 20px;
+  filter: blur(2.5rem);
+}
+
+.item-img {
+  grid-area: 1 / 1 / 2 / 2;
+  z-index: 1;
+}
+
+
+.transaction-info {
+  flex: 1;
+  position: relative;
+  display: grid;
+  justify-items: start;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 40px;
+}
+
+.transaction-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.item-name {
+  position: relative;
+  display: flex;
+  justify-content: start;
+  grid-area: 1 / 1 / 2 / 3;
+}
+
+.tx-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.tx-links a {
+  font-weight: var(--fw-bold);
+  border-bottom: 2px solid var(--font-primary);
+  transition: 0.3s;
+}
+
+.tx-links>a:hover {
+  color: var(--accent);
+  border-color: var(--accent );
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.item-name {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.item-wear {
+  color: var(--warning);
+}
+
+.item-special {
+  font-size: 16px;
+}
+
+
+.tx-card-price {
+  font-size: 15px;
+  color: var(--accent-border) 
+}
+
+.tx-source-info {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+.tx-link-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+
+  &>a {
+    padding-right: 12px;
+  }
+}

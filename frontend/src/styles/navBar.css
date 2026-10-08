@@ -1,0 +1,73 @@
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-black);
+  border-bottom: 2px  solid var(--accent);
+  border-radius: 0 0 30px 30px;
+  margin-bottom: 20px;
+}
+
+.nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 30px;
+}
+
+.nav-logo_container {
+  display: flex;
+  padding-left: 30px;
+}
+
+.nav-logo {
+  font-family: var(--font-header);
+  color: var(--font-primary);
+}
+
+.nav-bar {
+  position: relative;
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  color: var(--font-primary);
+}
+
+.nav-list {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+}
+
+.nav-list_element {
+  border-bottom: 2px solid var(--font-primary);
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.nav-list_element:hover, .nav-logo:hover {
+  color: var(--accent);
+  transition: .3s;
+}
+
+.nav-markets {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-family: var(--font-main);
+  color: var(--font-primary);
+  padding-right: 30px;
+}
+
+
+.nav-balance-name {
+  font-family: var(--font-header);
+  font-size: 14px;
+  letter-spacing: 1px;
+}

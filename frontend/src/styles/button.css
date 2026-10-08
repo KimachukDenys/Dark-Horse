@@ -1,0 +1,70 @@
+.btn-default {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 5px 20px;
+  border-radius: 15px;
+  transition: 0.2s ease-in-out;
+}
+
+.action-btn {
+  border: 2px solid var(--accent);
+
+  &:hover {
+    color: var(--accent);
+    transform: scale(1.1);
+  }
+}
+
+.active-action {
+  background-color: var(--accent-blur);
+}
+
+
+.success-btn {
+  border: 2px solid var(--accent-border);
+
+  &:hover {
+    color: var(--accent-border);
+    transform: scale(1.1);
+  }
+}
+
+.active-success {
+  background-color: #1f6a42;
+}
+
+.complete-btn {
+  border: 2px solid var(--complete);
+
+  &:hover {
+    color: var(--complete);
+    transform: scale(1.1);
+  }
+}
+
+.warning-btn {
+  border: 2px solid var(--warning);
+
+  &:hover {
+    color: var(--warning);
+    transform: scale(1.1);
+  }
+}
+
+
+.danger-btn {
+  border: 2px solid var(--accent-red);
+
+  &:hover {
+    color: var(--accent-red);
+    transform: scale(1.1)
+  }
+}
+
+.active-danger {
+  background-color: #5f1b1b;
+}
+
+
+

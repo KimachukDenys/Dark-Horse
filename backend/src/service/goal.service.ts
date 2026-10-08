@@ -1,18 +1,24 @@
 // src/goal/goal.service.ts
 
-import { Prisma } from "@prisma/client"
+import { Prisma, GoalStatus } from "@prisma/client"
 import prisma from "../lib/prisma"
 import { createGoalData, updateGoalData } from "../types/goal.types"
+import { it } from "node:test"
 
 
 export async function getAllGoals() {
   const goals =  await prisma.goal.findMany({
+    orderBy: {
+      id: "asc"
+    },
     include: {
       goalTransactions: {
         include: {
-          transactions: true
+          transaction: true
         }
-      }
+      },
+      sourceMarket: true,
+      targetMarket: true
     }
   })
 
@@ -20,7 +26,36 @@ export async function getAllGoals() {
     throw new Error("Goals don't exists")
   }
 
-  return goals
+  const goalsMap = goals.map(goal => {
+    const transaction = goal.goalTransactions.map(item => item.transaction)
+
+    const spent = transaction.reduce((accum, item) => {
+      if(item.type === "BUY") {
+        return accum.plus(item.price)
+      }
+      return accum
+    }, new Prisma.Decimal(0))
+
+    const returned = transaction.reduce((accum, item) => {
+      if(item.type === "SELL") {
+        return accum.plus(item.price)
+      }
+      return accum
+    }, new Prisma.Decimal(0))
+
+    const roi = returned.minus(goal.targetInvestment).div(goal.targetInvestment).mul(100)
+
+    return {
+      goal,
+      stats: {
+        spent,
+        returned,
+        roi
+      }
+    }
+  })
+
+  return goalsMap
 }
 
 
@@ -32,9 +67,16 @@ export async function getGoal(id: number) {
     include: {
       goalTransactions: {
         include: {
-          transactions: true
+          transaction: {
+            include: {
+              item: true,
+              market: true
+            }
+          }
         }
-      }
+      },
+      sourceMarket: true,
+      targetMarket: true
     }
   })
 
@@ -42,46 +84,140 @@ export async function getGoal(id: number) {
     throw new Error("Goal not found")
   }
 
-  return goal
+  const transaction = goal.goalTransactions.map(item => item.transaction)
+
+  const spent = transaction.reduce((accum, item) => {
+    if(item.type === "BUY") {
+        return accum.plus(item.price)
+    }
+    return accum
+  }, new Prisma.Decimal(0))
+  
+  const returned = transaction.reduce((accum, item) => {
+    if(item.type === "SELL") {
+      return accum.plus(item.price)
+    }
+    return accum
+  }, new Prisma.Decimal(0))
+
+  const remaining = goal.targetReceive.minus(spent)
+  const progres = goal.targetReceive.equals(0) ? new Prisma.Decimal(0) : spent.div(goal.targetReceive).mul(100)
+  
+  const profit = returned.minus(goal.targetInvestment)
+  const roi = returned.minus(goal.targetInvestment).div(goal.targetInvestment).mul(100)
+
+  return {
+    goal,
+    stats: {
+      spent,
+      returned,
+      progres,
+      remaining,
+      profit,
+      roi
+    }
+  }
 }
 
 
 export async function createGoal(data: createGoalData) {
-  return await prisma.goal.create({
-    data: {
-      name: data.name,
-      description: data?.description,
-      targetInvestment: new Prisma.Decimal(data.targetInvestment),
-      targetReturn: new Prisma.Decimal(data.targetReturn),
+  return await prisma.$transaction(async (tx) => {
+    let status = "QUEUED" as GoalStatus
+    
+    if(!data) {
+      throw new Error("data doesn't")
     }
+    const activeGoal = await tx.goal.findFirst({
+      where: {
+        sourceMarketId: data.sourceMarketId,
+        status: "ACTIVE"
+      }
+    })
+    
+    if(!activeGoal) {
+      status = "ACTIVE"
+    }
+
+
+
+    return await tx.goal.create({
+      data: {
+        sourceMarketId: data.sourceMarketId,
+        targetMarketId: data.targetMarketId,
+        status: status,
+        
+        name: data.name,
+        description: data?.description,
+        targetInvestment: new Prisma.Decimal(data.targetInvestment),
+        targetReceive: new Prisma.Decimal(data.targetReceive),
+      }
+    })
   })
 }
 
 
-export async function updateGoal(data: updateGoalData) {
-  const goal = await prisma.goal.findUnique({
-    where: {
-      id: data.update.id
-    }
-  })
+export async function updateGoal(id: number, data: updateGoalData) {
+  return await prisma.$transaction(async (tx) => {
+    const goal = await tx.goal.findUnique({
+      where: {
+        id
+      }
+    })
 
-  if(goal) {
-    throw new Error("Goal not found")
-  }
-
-  return await prisma.goal.update({
-    where: {
-      id: data.update.id
-    },
-    data: {
-      name: data.goal.name,
-      description: data.goal?.description,
-      targetInvestment: new Prisma.Decimal(data.goal.targetInvestment),
-      targetReturn: new Prisma.Decimal(data.goal.targetReturn),
-      closedAt: data.update?.closedAt
+    if(!goal) {
+      throw new Error("Goal not found")
     }
+    
+    return await tx.goal.update({
+      where: {
+        id
+      },
+      data: {
+        sourceMarketId: data.goal.sourceMarketId,
+        targetMarketId: data.goal.targetMarketId,
+        status: data.goal?.status,
+        
+        name: data.goal.name,
+        description: data.goal?.description,
+        targetInvestment: new Prisma.Decimal(data.goal.targetInvestment),
+        targetReceive: new Prisma.Decimal(data.goal.targetReceive),
+      }
+    })
   })
 }
+
+
+export async function completeGoal(id: number, data: updateGoalData) {
+  return await prisma.$transaction(async (tx) => {
+    const goalData = data.goal
+    const goal = await tx.goal.findUnique({
+      where: {
+        id
+      }
+    })
+
+    if(!goal) {
+      throw new Error("Goal doesn't exist")
+    }
+
+    if(goalData.targetReceive > goalData.targetSpend) {
+      throw new Error("Goal doesn't complete")
+    }
+
+    return await tx.goal.update({
+      where: {
+        id
+      },
+      data: {
+        status: "COMPLETED",
+        targetSpend: goalData.targetSpend,
+        targetReturn: goalData.targetReturn,
+        closedAt: data.update.closedAt ? new Date(data.update.closedAt) : undefined
+      }
+    })
+  })
+}
+
 
 export async function deleteGoal(id: number) {
   return await prisma.$transaction(async (tx) => {
@@ -94,12 +230,6 @@ export async function deleteGoal(id: number) {
     if(!goal) {
       throw new Error("Goal not found")
     }
-    
-    const deleteGoatTxs = await tx.goalTransaction.deleteMany({
-      where: {
-        goalId: id
-      }
-    })
 
     const deleteGoal = await tx.goal.delete({
       where: {
@@ -107,48 +237,6 @@ export async function deleteGoal(id: number) {
       }
     })
 
-    return {deleteGoal, deleteGoatTxs}
-  })
-}
-
-
-
-
-
-
-
-
-
-// GoalTransaction methods
-
-
-export async function createGoalTx(data: {goalId: number, transactionId: number}) {
-  return await prisma.goalTransaction.create({
-    data: {
-      goalId: data.goalId,
-      transactionId: data.transactionId
-    }
-  })
-}
-
-
-export async function updateGoalTx(data: {id: number, goalId: number, transactionId: number}) {
-  return await prisma.goalTransaction.update({
-    where: {
-      id: data.id
-    },
-    data: {
-      goalId: data?.goalId,
-      transactionId: data?.transactionId,
-    }
-  })
-}
-
-
-export async function deleteGoalTx(id: number) {
-  return await prisma.goalTransaction.delete({
-    where: {
-      id
-    }
+    return deleteGoal
   })
 }

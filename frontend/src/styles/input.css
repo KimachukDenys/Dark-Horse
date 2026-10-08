@@ -1,0 +1,99 @@
+.input-field {
+  width: calc(100% - 44px);
+  height: 42px;
+  border: 2px solid var(--accent);
+  background-color: var(--bc-black);
+  border-radius: 14px;
+  padding: 0 22px;
+  color: var(--font-primary);
+  font-family: var(--font-main);
+  font-size: 15px;
+}
+
+.input-rel{
+  position: relative;
+}
+
+
+.input-label {
+  font-family: var(--font-main);
+  font-size: 15px;
+  color: var(--font-primary);
+  position: absolute;
+  top: 9px;
+  left: 26px;
+  transition: .2s, color 0S;
+}
+
+.input-field:focus ~ .input-label {
+  color: var(--accent);
+}
+
+.input-field:focus {
+  outline: none !important;
+  border: 2px solid var(--accent);
+}
+
+.input-field:focus ~ .input-label,  .input-field:not(:placeholder-shown) ~ .input-label{
+  position: absolute;
+  left: 1.9rem;
+  top: -14px;
+  width: auto;
+  padding: 1px 2px;
+  background-color: var(--bc-black);
+  z-index: 1;
+  pointer-events: none;
+  transition: .1s ease-in-out, color 0s;
+}
+
+.input_rel-radio {
+  position: relative;
+}
+
+.input_rel-radio > .input-label {
+  position: relative;
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  gap: 20px;
+  width: 300px;
+  height: 40px;
+  top: 0;
+  left: 0;
+}
+
+.input_rel-radio input[type=radio] {
+  position: relative;
+  accent-color: var(--bc-black);
+  width: 30px;
+  height: 30px;
+}
+
+
+.toggle__password {
+  z-index: 1;
+  background: var(--bc-primary);
+  position: absolute;
+  right: 1rem;
+  bottom: 11px;
+}
+
+.error-message {
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: -25px;
+  left: 1.5rem;
+}
+
+.invalid-input {
+  border-color: var(--c-error);
+}
+
+.error-message, .invalid-input ~ .input-label, .invalid-input:focus ~ .input-label, .svg-error {
+  color: var(--c-error);
+}
+
+.invalid-input:focus, .invalid-input > svg  {
+  outline: solid 1px var(--c-error);
+}

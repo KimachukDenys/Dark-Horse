@@ -6,12 +6,15 @@ import {
   getTransaction as getTxService,
   createTransaction as createTxService,
   updateTransaction as updateTxService,
-  deleteTransaction as deleteTxService
+  deleteTransaction as deleteTxService,
+  getAllNotSoldTx as getAllNotSoldTxService,
+  getAllTransactionRoad as getAllTxRoadService,
+  updateTxStatus as updateTxStatusService
 } from "../service/transaction.service";
 
 export async function getAllTransactions(req: Request, res: Response) {
   try {
-    const transactions = await getAllTxService();
+    const transactions = await getAllTxService(req.query);
 
     res.json({
       message: "Transactions gets successfully",
@@ -83,6 +86,12 @@ export async function createTransaction(req: Request, res: Response) {
       })
     }
 
+    if(e instanceof Error && e.message === "Source transaction not found") {
+      return res.status(400).json({
+        message: e.message
+      })
+    }
+
     if(e instanceof Error) {
       return res.status(500).json({
         message: e.message
@@ -148,6 +157,60 @@ export async function deleteTransaction(req: Request, res: Response) {
       })
     }
 
+    if(e instanceof Error) {
+      res.status(500).json({
+        message: e.message
+      })
+    }
+  }
+}
+
+
+export async function getAllNotSoldTx(req: Request, res: Response) {
+  try {
+    const onInventory = await getAllNotSoldTxService()
+
+    res.json({
+      message: "Data gets successfully",
+      data: onInventory
+    })    
+  } catch (e) {
+    if(e instanceof Error) {
+      res.status(500).json({
+        message: e.message
+      })
+    }
+  }
+}
+
+export async function getAllTransactionRoad(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id)
+    const txs = await getAllTxRoadService(id);
+    
+    res.json({
+      message: "Transaction road get successfully",
+      data: txs
+    })
+  } catch (e) {
+    if(e instanceof Error) {
+      res.status(500).json({
+        message: e.message
+      })
+    }
+  }
+}
+
+export async function updateTxStatus(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id)
+    await updateTxStatusService(id, req.body.quantity)
+
+    res.json({
+      message: "Transaction status updated successfully"
+    })
+
+  } catch (e) {
     if(e instanceof Error) {
       res.status(500).json({
         message: e.message

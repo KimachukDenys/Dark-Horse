@@ -1,0 +1,97 @@
+.form-container {
+  display: flex;
+  flex-direction: column;
+  margin-top: 70px;
+  gap: 30px;
+}
+
+.transaction-form {
+  display: grid;
+  grid-template-columns: 582px 275px;
+  align-items: start;
+  justify-content: space-between;
+  padding: 20px;
+  border: 2px solid var(--accent);
+  border-radius: 25px;
+  gap: 10%;
+  margin: 0 auto;
+  width: 1120px;
+  max-width: 1400px;
+}
+
+.form-select-buttons {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  gap: 20px;
+}
+
+.form-specials-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  justify-content: center;
+  align-items: start;
+}
+
+.form-end-start-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  align-items: start;
+  gap: 22px;
+}
+
+.form-item-name-container {
+  display: flex;
+  gap: 40px;
+}
+
+.form-left-side {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.form-right-side {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  gap: 35px;
+}
+
+
+.roi-container {
+  display: flex;
+  width: 275.2px;
+  gap: 30px;
+  justify-content: start;
+  align-items: center;
+}
+
+
+/* Fields styles */
+
+#itemName {
+  width: 300px;
+}
+
+#itemQuantity {
+  width: 30px;
+  padding-right: 5px;
+}
+
+#itemQuantity:focus ~ .input-label,  #itemQuantity:not(:placeholder-shown) ~ .input-label{
+  position: absolute;
+  left: 0.9rem;
+}
+
+#itemPrice {
+  width: calc(272px - 44px);
+}
+
+.form-btn {
+  width: 200px;
+  height: 50px;
+  font-size: 20px;
+}

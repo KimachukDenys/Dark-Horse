@@ -1,0 +1,38 @@
+.goal-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.goal-status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.goal-progress {
+  position: relative;
+  width: 100%;
+  gap: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-bar {
+  /* border in component, is 2px solid, color var(--accent) or var(--complete) */
+  display: flex;
+  width: 100%;
+  height: 25px;
+  padding: 3px;
+  border-radius: 17px;
+  box-sizing: border-box;
+}
+
+.progress-percents {
+  /* background in component var(--accent) or var(--complete) */
+  height: 100%;
+  border-radius: inherit;
+}

@@ -1,0 +1,49 @@
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.dashboard-section {
+  margin-top: 40px;
+}
+
+.dashboard-section > h2 {
+  font-family: var(--font-header);
+  margin-bottom: 26px;
+}
+
+.month-list {
+  display: flex;
+  gap: 12px;
+}
+
+.market-list{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flow-list {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 30px;
+}
+
+.market-highlight {
+  padding: 12px;
+}
+
+.market-highlight > p {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}

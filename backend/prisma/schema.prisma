@@ -29,6 +29,9 @@ model Market {
 
   wallet       Wallet?
   transactions ItemTransaction[]
+
+  sourceMarket Goal[] @relation("GoalSourceMarket")
+  targetMarket Goal[] @relation("GoalTargetMarket")
 }
 
 enum Currency {
@@ -48,6 +51,11 @@ model Wallet {
 model Item {
   id            Int @id @default(autoincrement())
   name          String @unique
+  imageUrl      String?
+  itemType      String?
+  weaponType    String?
+  itemCollection  String?
+  itemQuality   String?
   transactions  ItemTransaction[]
 }
 
@@ -62,15 +70,16 @@ enum Wear {
   FT
   WW
   BS
+  NONE
 }
 
 enum SpecialType {
   NORMAL
   STATTRAK
   SOUVENIR
-  // STICKER
-  // CHARM
-  // CASE
+  STICKER
+  CHARM
+  CASE
 }
 
 enum Status {
@@ -84,7 +93,7 @@ model ItemTransaction {
   id Int @id @default(autoincrement())
 
   special    SpecialType @default(NORMAL)
-  wear       Wear        @default(FN)
+  wear       Wear        @default(NONE)
   floatValue Decimal     @db.Decimal(18, 14)
 
   price         Decimal         @db.Decimal(18, 2)
@@ -92,6 +101,7 @@ model ItemTransaction {
   quantity      Int
   itemStatus    Status          @default(PENDING)
   itemCurrency  Currency        @default(USD)
+  roi       Decimal? @db.Decimal(10, 4)
 
   csFloatId       String?
   steamAssetId    String?
@@ -104,23 +114,46 @@ model ItemTransaction {
   item   Item @relation(fields: [itemId], references: [id])
   itemId Int
 
+  sourceBuy ItemTransaction? @relation("BuySell", fields: [sourceBuyId], references: [id])
+  sells ItemTransaction[] @relation("BuySell")
+  sourceBuyId Int?
+
   createdAt DateTime @default(now())
+  acquiredAt    DateTime
+  tradeBanUntil DateTime?
   updatedAt DateTime @updatedAt
 
-  goalTransactions GoalTransaction[]
+  goalTransaction GoalTransaction[]
+}
+
+enum GoalStatus {
+  QUEUED
+  ACTIVE
+  COMPLETED
+  CANCELED
 }
 
 model Goal {
   id Int @id @default(autoincrement())
 
+  sourceMarketId    Int
+  targetMarketId    Int
+  status            GoalStatus @default(QUEUED)
+
   name             String
   description      String?
   targetInvestment Decimal @db.Decimal(18, 2)
-  targetReturn     Decimal @db.Decimal(18, 2)
+  targetReceive    Decimal @db.Decimal(18, 2)
+  targetSpend      Decimal? @db.Decimal(18, 2)
+  targetReturn     Decimal? @db.Decimal(18, 2)
+  roi              Decimal? @db.Decimal(10, 4)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   closedAt  DateTime?
+
+  sourceMarket Market @relation("GoalSourceMarket", fields: [sourceMarketId], references: [id])
+  targetMarket Market @relation("GoalTargetMarket", fields: [targetMarketId], references: [id])
 
   goalTransactions GoalTransaction[]
 }
@@ -128,11 +161,12 @@ model Goal {
 model GoalTransaction {
   id Int @id @default(autoincrement())
 
-  goal   Goal @relation(fields: [goalId], references: [id])
+  goal   Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
   goalId Int
 
-  transactions  ItemTransaction @relation(fields: [transactionId], references: [id])
+  transaction  ItemTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   transactionId Int
+
 
   @@unique([goalId, transactionId])
 }

@@ -1,0 +1,49 @@
+/* Reset CSS */
+
+*,
+*::before,
+*::after{
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+*::before,
+*::after{
+  display: inline-block;
+}
+
+body, html{
+  height: 100%;
+}
+
+a{
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+}
+
+img{
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+li{
+  list-style: none;
+}
+
+h1, h2, h3, h4, h5, h6{
+  font-family: inherit;
+  color: inherit;
+  font-weight: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  font: 18px/145% var(--font-main);
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}

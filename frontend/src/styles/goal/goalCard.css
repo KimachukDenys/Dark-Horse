@@ -1,0 +1,73 @@
+.goal-card {
+  background: var(--bc-black);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--accent-blur);
+  border-radius: 12px;
+  padding: 20px 31px;
+}
+
+.goal-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: center;
+  height: 100%;
+  gap: 24px;
+}
+
+.gc-info-format {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+  gap: 5px;
+}
+
+.gc-name {
+  display: flex;
+  width: 100%;
+  gap: 7px;
+}
+.gc-name > strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gc-profit-info {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gc-profit-format {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: start;
+  gap: 5px;
+}
+
+.goal-card-footer {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+}
+
+
+.goal-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.goal-card-actions > p {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+

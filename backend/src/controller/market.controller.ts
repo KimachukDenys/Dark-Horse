@@ -41,7 +41,7 @@ export async function getMarket(req: Request, res : Response) {
     const market = await marketService(id);
     
     res.json({
-      message: "Market get successfully",
+      message: "Market got successfully",
       data: market
     });
   } catch (e: unknown) {
