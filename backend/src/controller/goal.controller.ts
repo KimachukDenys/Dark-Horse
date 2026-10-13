@@ -5,6 +5,7 @@ import {
   getGoal as getGoalService,
   createGoal as createGoalService,
   updateGoal as updateGoalService,
+  activateGoal as activateGoalService,
   completeGoal as completeGoalService,
   deleteGoal as deleteGoalService
 } from "../service/goal.service";
@@ -101,6 +102,43 @@ export async function updateGoal(req: Request, res: Response) {
   }
 }
 
+export async function activateGoal(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id)
+
+    const  activeGoal = await activateGoalService(id)
+
+    res.json({
+      message: "Goal activated successfully",
+      data: activeGoal
+    })
+  } catch (e) {
+    if(e instanceof Error && e.message === "Goal doesn't exist") {
+      res.status(404).json({
+        message: e.message
+      })
+    }
+
+    if(e instanceof Error && e.message === "This goal can't be active") {
+      res.status(400).json({
+        message: e.message
+      })
+    }
+
+    if(e instanceof Error && e.message === "The amount spent exceeds the funds received, and there may be a discrepancy in") {
+      res.status(400).json({
+        message: e.message
+      })
+    }
+
+    if(e instanceof Error) {
+      res.status(500).json({
+        message: e.message
+      })
+    }
+  }
+}
+
 
 export async function completeGoal(req: Request, res: Response) {
   try {
@@ -127,7 +165,7 @@ export async function completeGoal(req: Request, res: Response) {
 
     if(e instanceof Error) {
       res.status(500).json({
-        messsage: e.message
+        message: e.message
       })
     }
   }

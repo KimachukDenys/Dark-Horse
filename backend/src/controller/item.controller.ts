@@ -7,6 +7,7 @@ import {
   createItem as createItemService,
   updateItem as updateItemService,
   deleteItem as deleteItemService,
+  getSteamItemData 
 } from "../service/item.service";
 
 
@@ -122,6 +123,25 @@ export async function deleteItem(req: Request, res: Response) {
 
     if(e instanceof Error) {
       res.status(500).json({
+        message: e.message
+      })
+    }
+  }
+}
+
+export async function apiSearch(req: Request, res: Response) {
+  try {
+    const data = req.body
+    console.log(data)
+    const result = getSteamItemData(data)
+
+    res.json({
+      message: "work",
+      data: result
+    })
+  } catch (e) {
+    if(e instanceof Error) {
+      res.json({
         message: e.message
       })
     }

@@ -1,11 +1,6 @@
 import { formatDate } from "../../utils/date";
 import { useParams, Link } from "react-router-dom";
-import {
-  specialTypes,
-  wearColor,
-  qualityColors,
-} from "../../types/transaction.types";
-import { getKeyByValue } from "../../utils/findValue";
+import { exteriorColor, exteriorCut, exteriorTypes, } from "../../types/transaction.types";
 import { api } from "../../api/axios";
 import { useEffect, useState } from "react";
 import type { TransactionType } from "../../types/transaction.types";
@@ -47,19 +42,13 @@ function TransactionModal() {
       {sourceTx.map((source) => {
 
         const formattedBuyDate = formatDate(source.createdAt);
-
-        const specialFormat = getKeyByValue(
-          specialTypes,
-          source.special
-        );
-
-        const wearColorValue =
-          wearColor[source.wear as keyof typeof wearColor];
-
-        const qualityColor =
-          qualityColors[
-            source.item.itemQuality as keyof typeof qualityColors
-          ];
+        const exterior = exteriorTypes.includes(source.item.exterior) ? source.item.exterior : "" 
+        const extColor = exteriorColor[exterior]
+        const exteriorFormat = exteriorCut[exterior]
+        const itemName = exterior.length > 1 
+          ? source.item.name.substring(0, source.item.name.length - (exterior.length + 3))
+          : source.item.name
+        const color = source.item.itemColor
 
         const imageUrl = source.item.imageUrl
           ? `https://community.akamai.steamstatic.com/economy/image/${source.item.imageUrl}`
@@ -85,8 +74,8 @@ function TransactionModal() {
                 <div
                   className="image-back-shadow"
                   style={{
-                    boxShadow: `0px -5px 20px 35px ${qualityColor}`,
-                    background: qualityColor,
+                    boxShadow: `0px -5px 20px 35px #${color}`,
+                    background: `#${color}`,
                   }}
                 />
                 {imageUrl ? 
@@ -99,9 +88,8 @@ function TransactionModal() {
 
               <div className="transaction-info">
                 <p className="item-name">
-                  <span className="item-wear"style={{color: wearColorValue}}>[{source.wear}]</span>
-                  <span className="item-special">{specialFormat ?? ""}</span>
-                  {source.item.name}
+                  <span className="item-exterior"style={{color: extColor}}>[{exteriorFormat}]</span>
+                  {itemName}
                 </p>
                 <p>Float: {source.floatValue}</p>
                 <p>ROI: {roi}%</p>

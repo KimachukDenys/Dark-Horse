@@ -14,18 +14,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum MarketName {
-  STEAM
-  CSFLOAT
-  DMARKET
-  SKINPORT
-  CSMONEY
-  TRADEIT
-}
-
 model Market {
   id           Int    @id @default(autoincrement())
-  name         MarketName @unique 
+  name         String @unique 
 
   wallet       Wallet?
   transactions ItemTransaction[]
@@ -51,11 +42,32 @@ model Wallet {
 model Item {
   id            Int @id @default(autoincrement())
   name          String @unique
-  imageUrl      String?
-  itemType      String?
-  weaponType    String?
-  itemCollection  String?
-  itemQuality   String?
+  marketHashName      String @unique
+  marketBucketGroupId       String?
+  imageUrl                  String?
+  itemColor                 String?
+  backgroundColor           String?
+  classId                   String?
+  appId                     Int?
+
+  itemType                  String?
+  itemTypeIterName          String?
+  
+  weaponType                String?
+  weaponTypeIterName        String?
+  
+  collection            String?
+  collectionIterName    String?
+  
+  quality               String?
+  qualityIterName       String?
+  
+  rarity                String?
+  rarityIterName        String?
+  
+  exterior              String?
+  exteriorIterName      String?
+  
   transactions  ItemTransaction[]
 }
 
@@ -73,15 +85,6 @@ enum Wear {
   NONE
 }
 
-enum SpecialType {
-  NORMAL
-  STATTRAK
-  SOUVENIR
-  STICKER
-  CHARM
-  CASE
-}
-
 enum Status {
   PENDING
   INVENTORY
@@ -92,21 +95,18 @@ enum Status {
 model ItemTransaction {
   id Int @id @default(autoincrement())
 
-  special    SpecialType @default(NORMAL)
-  wear       Wear        @default(NONE)
   floatValue Decimal     @db.Decimal(18, 14)
 
-  price         Decimal         @db.Decimal(18, 2)
-  type          TransactionType @default(BUY)
-  quantity      Int
-  itemStatus    Status          @default(PENDING)
-  itemCurrency  Currency        @default(USD)
-  roi       Decimal? @db.Decimal(10, 4)
+  price           Decimal         @db.Decimal(18, 2)
+  type            TransactionType @default(BUY)
+  quantity        Int
+  itemStatus      Status          @default(PENDING)
+  itemCurrency    Currency        @default(USD)
+  roi             Decimal?        @db.Decimal(10, 4)
 
   csFloatId       String?
   steamAssetId    String?
   steamInstanceId String?
-  steamClassId    String?
 
   market   Market @relation(fields: [marketId], references: [id])
   marketId Int

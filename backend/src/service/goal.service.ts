@@ -186,6 +186,52 @@ export async function updateGoal(id: number, data: updateGoalData) {
   })
 }
 
+export async function activateGoal(id: number) {
+  return await prisma.$transaction(async (tx) => {
+    const goal = await tx.goal.findUnique({
+      where: {
+        id
+      }
+    })
+
+    if(!goal) {
+      throw new Error("Goal doesn't exist")
+    }
+
+    if(goal.status !== "QUEUED") {
+      return new Error("This goal can't be active")
+    }
+
+    const oldActive = await tx.goal.findFirst({
+      where: {
+        status: "ACTIVE",
+        sourceMarketId: goal.sourceMarketId,
+        targetMarketId: goal.targetMarketId 
+      }
+    })
+
+    if(oldActive) {
+      await tx.goal.update({
+        where: {
+          id: oldActive.id
+        }, 
+        data: {
+          status: "QUEUED"
+        }
+      })
+    }
+
+    return await tx.goal.update({
+      where: {
+        id
+      }, 
+      data: {
+        status: "ACTIVE"
+      }
+    })
+  })
+}
+
 
 export async function completeGoal(id: number, data: updateGoalData) {
   return await prisma.$transaction(async (tx) => {
@@ -202,6 +248,15 @@ export async function completeGoal(id: number, data: updateGoalData) {
 
     if(goalData.targetReceive > goalData.targetSpend) {
       throw new Error("Goal doesn't complete")
+    }
+
+    // calculation of goal deviation 
+    const deviation = getAmountDeviation(Number(goal.targetReceive))
+    const spent = goalData.targetSpend
+
+
+    if(deviation.rMin > spent || spent > deviation.rMax) {
+      throw new Error(`The amount spent exceeds the funds received, and there may be a discrepancy in ${deviation.dev.toFixed(2)}$`)
     }
 
     return await tx.goal.update({
@@ -239,4 +294,14 @@ export async function deleteGoal(id: number) {
 
     return deleteGoal
   })
+}
+
+
+function getAmountDeviation(received: number) {
+  const k = 0.5
+  const deviation = k * Math.sqrt(received)
+  const receivedMax = received + deviation
+  const receivedMin = received + deviation
+
+  return {dev: deviation, rMax: receivedMax, rMin: receivedMin}
 }

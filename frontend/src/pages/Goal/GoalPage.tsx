@@ -37,7 +37,7 @@ function GoalPage() {
 
       <div className="goals-container">
         {goals.map((goalInfo) => (
-          <GoalCard key={goalInfo.goal.id} goalInfo={goalInfo} onComplete={getGoals} onDelete={getGoals} setNotification={setNotification}
+          <GoalCard key={goalInfo.goal.id} goalInfo={goalInfo} onChange={getGoals} setNotification={setNotification}
           />
         ))}
       </div>

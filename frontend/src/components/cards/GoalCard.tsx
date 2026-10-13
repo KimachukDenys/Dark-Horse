@@ -5,19 +5,17 @@ import { api } from "../../api/axios";
 import type { GoalsType } from "../../types/goal.types";
 import type { Notification } from "../../types/global.types";
 import { GoalStatusAndColor } from "../../types/goal.types";
-import { MarketName } from "../../types/market.types";
 import "../../styles/goal/goalCard.css"
 import "../../styles/goal/goalMain.css"
 import axios from "axios";
 
 type GoalCardProps = {
   goalInfo: GoalsType,
-  onComplete: () => void,
-  onDelete: () => void,
+  onChange: () => void,
   setNotification: React.Dispatch<React.SetStateAction<Notification | null>>
 }
 
-function GoalCard({goalInfo, onComplete, onDelete, setNotification}: GoalCardProps) {
+function GoalCard({goalInfo, onChange, setNotification}: GoalCardProps) {
   const goal = goalInfo.goal
   const stats = goalInfo.stats
 
@@ -31,69 +29,64 @@ function GoalCard({goalInfo, onComplete, onDelete, setNotification}: GoalCardPro
   const progressColor = goal.status === "COMPLETED" ? "var(--complete)" :
     returnPercent >= 100 ? "var(--accent-border)" : "var(--accent)"
 
-  const sourceMarketName = MarketName[goal.sourceMarket.name]
-  const targetMarketName = MarketName[goal.targetMarket.name]
+  const sourceMarketName = goal.sourceMarket.name
+  const targetMarketName = goal.targetMarket.name
 
-  async function completeGoal() {
+  async function changeGoal(action: "activate" | "complete" | "delete") {
     try {
-      const body = {
-        goal: {
-          sourceMarketId: goal.sourceMarketId,
-          targetMarketId: goal.targetMarketId,
-          status: goal.status,
-          name: goal.name,
-          description: null,
-          targetInvestment: goal.targetInvestment,
-          targetReceive: goal.targetReceive,
-          targetSpend: stats.spent,
-          targetReturn: stats.returned
-        },
-        update: {
-          closedAt: new Date()
-        }
+      let message: string = ""
+
+      if (action === "activate") {
+        await api.patch(`goal/activate/${goal.id}`)
+        message = `Goal #${goal.id} activated successfully!`
       }
-      console.log(body)
-      await api.patch(`/goal/complete/${goal.id}`, body)
+
+      if (action === "complete") {
+        const body = {
+          goal: {
+            sourceMarketId: goal.sourceMarketId,
+            targetMarketId: goal.targetMarketId,
+            status: goal.status,
+            name: goal.name,
+            description: null,
+            targetInvestment: goal.targetInvestment,
+            targetReceive: goal.targetReceive,
+            targetSpend: stats.spent,
+            targetReturn: stats.returned
+          },
+          update: {
+            closedAt: new Date()
+          }
+        }
+
+        await api.patch(`/goal/complete/${goal.id}`, body)
+        message = `Goal #${goal.id} completed successfully!`
+      }
+
+      if (action === "delete") {
+        await api.delete(`/goal/delete/${goal.id}`)
+        message = `Goal #${goal.id} deleted successfully!`
+      }
       
       setNotification({
         id: Date.now(),
-        message: `Goal #${goal.id} completed successfully!`,
+        message,
         type: "success"
       })
-      onComplete()
+      onChange()
     } catch (e: unknown) {
       if(axios.isAxiosError(e)) {
         console.log(e)
+        console.log(e.response?.data)
         setNotification({
           id: Date.now(),
-          message: e.response?.data?.messsage || "Something went wrong",
+          message: e.response?.data?.message ,
           type: "error"
         })
       }
     }
   }
 
-  async function deleteGoal() {
-    try {
-      await api.delete(`/goal/delete/${goal.id}`)
-
-      setNotification({
-        id: Date.now(),
-        message: `Goal #${goal.id} deleted successfully!`,
-        type: "success"
-      })
-      onDelete()
-    } catch (e: unknown) {
-      if(axios.isAxiosError(e)) {
-        console.log(e)
-        setNotification({
-          id: Date.now(),
-          message: e.response?.data?.message || "Something went wrong!",
-          type: "error"
-        })
-      }
-    }
-  }
 
   return (
     <div className="goal-card">
@@ -153,11 +146,14 @@ function GoalCard({goalInfo, onComplete, onDelete, setNotification}: GoalCardPro
         <div className="goal-line to-bottom"></div>
         <div className="goal-card-actions">
           <p>Created: <strong>{createdAt.date}</strong></p>
+          {goal.status === "QUEUED" && (
+            <button type="button" className="success-btn btn-default" onClick={() => changeGoal("activate")}>Activate</button>
+          )}
           {goal.status === "ACTIVE" && goal.targetReceive <= stats.spent && (
-            <button type="button" className="success-btn btn-default" onClick={completeGoal}>Complete</button>
+            <button type="button" className="complete-btn btn-default" onClick={() => changeGoal("complete")}>Complete</button>
           )}
           <Link className="warning-btn btn-default" to={`/edit-goal/${goal.id}`}>Edit</Link>
-          <button type="button" className="danger-btn btn-default" onClick={deleteGoal}>Delete</button>
+          <button type="button" className="danger-btn btn-default" onClick={() =>changeGoal("delete")}>Delete</button>
         </div>
       </div>
     </div>

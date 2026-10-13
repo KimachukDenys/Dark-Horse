@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api/axios";
-import { specialTypes, wearTypes, floatValues } from "../types/transaction.types";
+import { qualityTypes, exteriorTypes, floatValues } from "../types/transaction.types";
 import { Link, useParams } from "react-router-dom";
 import { calculation, roiCalculation } from "../utils/calculation";
 import Notification from "../components/notification/Notification";
@@ -12,47 +12,63 @@ import axios from "axios";
 
 function TransactionForm({edit = false, sell = false, same = false}) {
   const { txId } = useParams();
-  const [markets, setMarkets] = useState<MarketType[]>([])
+  const [markets, setMarkets] = useState<MarketType[]>([]);
   const [itemInput, setItemInput] = useState("");
   const [priceInput, setPriceInput] = useState("10");
   const [data, setData] = useState({
     itemName: "",
-    special: "NORMAL",
-    wear: "NONE",
+    quality: "Normal",
+    exterior: "",
     floatValue: 0,
     price: 10,
     type: "BUY",
     quantity: 1,
     itemCurrency: "UAH",
-    csFloatId: "",
-    steamAssetId: "",
-    steamInstanceId: "",
-    steamClassId: "",
     sourceBuyId: undefined as number | undefined,
     marketId: "1",
     itemId: 0,
     acquiredAt: new Date().toISOString().substring(0,10)
   })
+  
   const [roiData, setRoiData] = useState({
     roi: 0,
     buyPrice: 0
   })
+
   const [notification, setNotification] = useState<{
     id: number;
     message: string;
     type: string;
   } | null>(null);
-
+  
   const today = new Date().toISOString().split('T')[0];
-
+  
   const handleInput = (e: React.MouseEvent<HTMLButtonElement> | React.ChangeEvent<HTMLInputElement>) => {
     let { name, value } = e.currentTarget;
-    if(name === "wear") {
-      const floatValue = floatValues[value as keyof typeof floatValues]
+
+    if(name === "quality") {
+      let itemInputName = qualityTypes.includes(data.quality)
+        ? itemInput.substring(data.quality.length + 1)
+        : itemInput
+      
+      itemInputName = value !== "Normal" ? `${value} ${itemInputName}` : itemInputName
+      setItemInput(itemInputName)
+    }
+
+    if(name === "exterior") {
+      let itemInputName = exteriorTypes.includes(data.exterior ?? "") 
+        ? itemInput.substring(0, itemInput.length - ((data.exterior?.length ?? 1) + 3)) 
+        : itemInput
+      
+      itemInputName += value.length > 1 ? ` (${value})` : ""
+      setItemInput(itemInputName)
+      
+      let exterior = exteriorTypes.includes(value) ? value : ""
+      const floatValue = floatValues[value] ?? 0
       setData((prev) => ({
         ...prev,
         floatValue: floatValue,
-        [name]: value,
+        exterior,
       }))
       return
     }
@@ -62,7 +78,7 @@ function TransactionForm({edit = false, sell = false, same = false}) {
       const calc = calculation(value);
       const price = calc.newPrice;
       
-      if (sell) {
+      if(sell) {
         const roiCalc = roiCalculation(
           price,
           roiData.buyPrice,
@@ -82,10 +98,9 @@ function TransactionForm({edit = false, sell = false, same = false}) {
       }))
       return
     }
-
+    
     if(name === "itemCurrency") {  
       const roiCal = roiCalculation(data.price, roiData.buyPrice, value, data.itemCurrency)
-
       if(sell) {
         setRoiData((prev) => ({
           ...prev,
@@ -112,34 +127,30 @@ function TransactionForm({edit = false, sell = false, same = false}) {
 
     setItemInput(item)
 
-    const itemSpecial = item.split(" ", 1).toString();
     
-    const fullWear = item.substring(
+    const exterior = item.substring(
       item.indexOf("(") + 1,
       item.lastIndexOf(")")
     );
 
-    const wear = wearTypes[fullWear] ?? "NONE";
-
-    if(wear === "NONE") {
-      if(item.includes("/")) {
-        item = item.replace(/\/+(?=[^\(\)]*\))/g, "-")
-      }
+    if(!exteriorTypes.includes(exterior)) {
       setData((prev) => ({
         ...prev,
         itemName: item,
-        wear: "NONE",
+        exterior: "",
         floatValue: 0
       }))
       return
     }
 
 
-    const special = specialTypes[itemSpecial as keyof typeof specialTypes] ?? "NORMAL";
+    const itemQuality = item.split(" ", 1).toString();
 
-    const startIndex = special.toString() === "NORMAL" 
-      ? item.indexOf(itemSpecial)
-      : item.indexOf(itemSpecial) + itemSpecial.length + 1
+    const quality = qualityTypes.includes(itemQuality) ? itemQuality : "Normal";
+
+    const startIndex = quality === "Normal" 
+      ? item.indexOf(itemQuality)
+      : item.indexOf(itemQuality) + itemQuality.length + 1
 
     if (!item.includes("(") || !item.includes(")")) {
       const itemName = item.substring(startIndex).trim()
@@ -147,7 +158,7 @@ function TransactionForm({edit = false, sell = false, same = false}) {
       setData((prev) => ({
         ...prev,
         itemName: itemName,
-        special,
+        quality,
         floatValue: 0.06
       }))
 
@@ -159,14 +170,13 @@ function TransactionForm({edit = false, sell = false, same = false}) {
       item.lastIndexOf(" (")
     ).trim()
 
-
-    const float = floatValues[wear] ?? 0.06;
+    const float = floatValues[exterior] ?? 0;
     
     setData((prev) => ({
       ...prev,
       itemName: itemName,
-      special,
-      wear,
+      quality,
+      exterior,
       floatValue: float
     }));
   };
@@ -179,26 +189,20 @@ function TransactionForm({edit = false, sell = false, same = false}) {
     const acquiredAt = new Date(data.acquiredAt)
     acquiredAt.setHours(now.getHours())
     acquiredAt.setMinutes(now.getMinutes())
+
+    const itemName = itemInput.replace(/\/+(?=[^\(\)]*\))/g, "-")
     
     const body = {
       item: {
         id: data.itemId,
-        name: data.itemName.trim()
+        name: itemName.trim()
       },
       transaction: {
-        special: data.special,
-        wear: data.wear,
         floatValue: data.floatValue,
-
         price: Number(data.price),
         type: data.type,
         quantity: Number(data.quantity),
         itemCurrency: data.itemCurrency,
-
-        csFloatId: data.csFloatId || undefined,
-        steamAssetId: data.steamAssetId || undefined,
-        steamInstanceId: data.steamInstanceId || undefined,
-        steamClassId: data.steamClassId || undefined,
 
         sourceBuyId: Number(data.sourceBuyId) || undefined,
         marketId: Number(data.marketId),
@@ -206,6 +210,7 @@ function TransactionForm({edit = false, sell = false, same = false}) {
         acquiredAt: acquiredAt.toISOString()
       }
     }
+
     try {
       let res
       if(edit) {
@@ -216,7 +221,7 @@ function TransactionForm({edit = false, sell = false, same = false}) {
           quantity: Number(data.quantity)
         })
         
-        res = await api.post("/transaction/create/tx", body);  
+        res = await api.post("/transaction/create/tx", body);
       } else {
         res = await api.post("/transaction/create/tx", body);
       }
@@ -249,17 +254,13 @@ function TransactionForm({edit = false, sell = false, same = false}) {
         const tx = res.data.data;
         setData({
           itemName: tx.item.name,
-          special: tx.special,
-          wear: tx.wear,
+          quality: tx.item.quality,
+          exterior: tx.item.exterior,
           floatValue: tx.floatValue,
           price: tx.price,
           type: tx.type,
           quantity: tx.quantity,
           itemCurrency: tx.itemCurrency,
-          csFloatId: tx.csFloatId,
-          steamAssetId: tx.steamAssetId,
-          steamInstanceId: tx.steamInstanceId,
-          steamClassId: tx.steamClassId,
           marketId: tx.marketId.toString(),
           sourceBuyId: undefined,
           itemId: tx.item.id,
@@ -319,27 +320,27 @@ function TransactionForm({edit = false, sell = false, same = false}) {
 
 
         <div className="form-item-name-container">
-          <div className="form-specials-buttons">
+          <div className="form-quality-buttons">
             <button type="button"
-              name="special"
-              className={`action-btn btn-default ${data.special === "NORMAL" ? "active-action" : ""}`}
-              value="NORMAL"
+              name="quality"
+              className={`action-btn btn-default ${data.quality == "Normal" ? "active-action" : ""}`}
+              value="Normal"
               onClick={handleInput}
               >
               Normal
             </button>
             <button type="button"
-              name="special"
-              className={`action-btn btn-default ${data.special === "STATTRAK" ? "active-action" : ""}`}
-              value="STATTRAK"
+              name="quality"
+              className={`action-btn btn-default ${data.quality === "StatTrak™" ? "active-action" : ""}`}
+              value="StatTrak™"
               onClick={handleInput}
               >
               StatTrak™
             </button>
             <button type="button"
-              name="special"
-              className={`action-btn btn-default ${data.special === "SOUVENIR" ? "active-action" : ""}`}
-              value="SOUVENIR"
+              name="quality"
+              className={`action-btn btn-default ${data.quality === "Souvenir" ? "active-action" : ""}`}
+              value="Souvenir"
               onClick={handleInput}
               >
               Souvenir
@@ -372,49 +373,49 @@ function TransactionForm({edit = false, sell = false, same = false}) {
             </div>
             <div className="form-select-buttons">
               <button type="button"
-                name="wear" 
-                className={`action-btn btn-default ${data.wear === "FN" ? "active-action" : ""}`}
-                value="FN"
+                name="exterior" 
+                className={`action-btn btn-default ${data.exterior === "Factory New" ? "active-action" : ""}`}
+                value="Factory New"
                 onClick={handleInput}
               >
                 FN
               </button>
               <button type="button"
-                name="wear" 
-                className={`action-btn btn-default ${data.wear === "MW" ? "active-action" : ""}`}
-                value="MW"
+                name="exterior" 
+                className={`action-btn btn-default ${data.exterior === "Minimal Wear" ? "active-action" : ""}`}
+                value="Minimal Wear"
                 onClick={handleInput}
               >
                 MW
               </button>
               <button type="button"
-                name="wear" 
-                className={`action-btn btn-default ${data.wear === "FT" ? "active-action" : ""}`}
-                value="FT"
+                name="exterior" 
+                className={`action-btn btn-default ${data.exterior === "Field-Tested" ? "active-action" : ""}`}
+                value="Field-Tested"
                 onClick={handleInput}
               >
                 FT
               </button>
               <button type="button" 
-                name="wear" 
-                className={`action-btn btn-default ${data.wear === "WW" ? "active-action" : ""}`}
-                value="WW"
+                name="exterior" 
+                className={`action-btn btn-default ${data.exterior === "Well-Worn" ? "active-action" : ""}`}
+                value="Well-Worn"
                 onClick={handleInput}
               >
                 WW
               </button>
               <button type="button" 
-                name="wear" 
-                className={`action-btn btn-default ${data.wear === "BS" ? "active-action" : ""}`}
-                value="BS"
+                name="exterior" 
+                className={`action-btn btn-default ${data.exterior === "Battle-Scarred" ? "active-action" : ""}`}
+                value="Battle-Scarred"
                 onClick={handleInput}
               >
                 BS
               </button> 
               <button type="button" 
-                name="wear" 
-                className={`action-btn btn-default ${data.wear === "NONE" ? "active-action" : ""}`}
-                value="NONE"
+                name="exterior" 
+                className={`action-btn btn-default ${data.exterior === "" ? "active-action" : ""}`}
+                value=""
                 onClick={handleInput}
               >
                 Other

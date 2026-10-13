@@ -1,9 +1,39 @@
-import { SpecialType, Wear, TransactionType, Status, Currency } from "@prisma/client";
+import { Wear, TransactionType, Status, Currency } from "@prisma/client";
+
+
+export type ItemTypesData = {
+  id?: number, 
+  name: string;
+  marketHashName: string
+  marketBucketGroupId:       string;
+  imageUrl:      string;
+  itemColor:     string;
+  backgroundColor:    string;
+  classId:   string;
+  appId:   number;
+
+  itemType: string;
+  itemTypeIterName: string;
+ 
+  weaponType: string;
+  weaponTypeIterName: string;
+ 
+  itemCollection: string;
+  itemCollectionIterName: string;
+ 
+  itemQuality: string;
+  itemQualityIterName: string;
+ 
+  itemRarity: string;
+  itemRarityItrName: string;
+ 
+  itemExterior: string;
+  itemExteriorIterName: string;
+};
 
 
 export type TransactionData = {
   id?: number;
-  special: SpecialType;
   wear: Wear;
   floatValue: number;
   price: number;
@@ -25,17 +55,12 @@ export type TransactionData = {
 };
 
 export type CreateTransactionDTO = {
-  item: {
-    name: string;
-  };
+  item: ItemTypesData;
   transaction: TransactionData;
 };
 
 export type UpdateTransactionDTO = {
-  item: {
-    id: number;
-    name: string;
-  };
+  item: ItemTypesData;
   transaction: TransactionData;
 };
 
@@ -57,5 +82,14 @@ export const wearTypes: Record<string, string> = {
   "FT": "Field-Tested",
   "WW": "Well-Worn",
   "BS": "Battle-Scarred",
+  "NONE": ""
+}
+
+export const wearCategory: Record<string, string> = {
+  "FN": "WearCategory0",
+  "MW": "WearCategory1",
+  "FT": "WearCategory2",
+  "WW": "WearCategory3",
+  "BS": "WearCategory4",
   "NONE": ""
 }

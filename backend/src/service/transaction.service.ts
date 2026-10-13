@@ -139,18 +139,13 @@ export async function createTransaction(data: CreateTransactionDTO) {
 
     if(!market) {
       throw new Error("Market not found")
-    }
+    };
 
     if(!market.wallet) {
       throw new Error("Wallet not found")
-    }
+    };
 
-    const createData = {
-      name: data.item.name,
-      wear: newTx.wear
-    } as const
-    
-    const item = await createItemService(tx, createData)
+    const item = await createItemService(tx, data.item.name)
     
     const txCurrency = newTx.itemCurrency
 
@@ -193,8 +188,6 @@ export async function createTransaction(data: CreateTransactionDTO) {
 
     const transaction = await tx.itemTransaction.create({
       data: {
-        special: newTx.special,
-        wear: newTx.wear,
         floatValue: new Prisma.Decimal(newTx.floatValue),
         price: price,
         type: newTx.type,
@@ -205,7 +198,6 @@ export async function createTransaction(data: CreateTransactionDTO) {
         csFloatId: newTx?.csFloatId,
         steamAssetId: newTx?.steamAssetId,
         steamInstanceId: newTx?.steamInstanceId,
-        steamClassId: newTx?.steamClassId,
 
         roi: roi ?? null,
         sourceBuyId: newTx?.sourceBuyId,
@@ -327,15 +319,10 @@ export async function updateTransaction(id: number, data: UpdateTransactionDTO) 
       throw new Error("Item not found")
     }
 
-    const itemData = {
-      name: data.item.name,
-      wear: newTx.wear
-    }
-
     if(!item) {
-      item = await createItemService(tx, itemData)
+      item = await createItemService(tx, data.item.name)
     } else if(item.name !== data.item.name) {
-      item = await updateItemService(tx, itemId, itemData)
+      item = await updateItemService(tx, itemId, data.item.name)
     }
 
     const market = await tx.market.findUnique({
@@ -352,8 +339,6 @@ export async function updateTransaction(id: number, data: UpdateTransactionDTO) 
         id: id
       },
       data: {
-        special: newTx.special,
-        wear: newTx.wear,
         floatValue: new Prisma.Decimal(newTx.floatValue),
         price: new Prisma.Decimal(newPrice),
         type: newTx.type,

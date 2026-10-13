@@ -1,10 +1,8 @@
 import { formatDate } from "../../utils/date";
-import { specialTypes, wearColor, qualityColors } from "../../types/transaction.types";
-import { getKeyByValue } from "../../utils/findValue";
+import { exteriorColor, exteriorCut, exteriorTypes } from "../../types/transaction.types";
 import { generateSteamItemLink, generateCSFloatItemLink} from "../../utils/itemLink";
 import { Link } from "react-router-dom";
 import { api } from "../../api/axios";
-import { MarketName } from "../../types/market.types";
 import type { TransactionType } from "../../types/transaction.types";
 import type { Notification } from "../../types/global.types";
 import "../../styles/transaction/txCardStyles.css";
@@ -20,23 +18,25 @@ type TransactionCardProps = {
 
 function TransactionCard({ tx, onDelete, setNotification }: TransactionCardProps) {
   const formatted = formatDate(tx.acquiredAt)
-  const maketNameFormat = MarketName[tx.market.name]
-  const specialFormat = getKeyByValue(specialTypes, tx.special)
-  const linkSteam = generateSteamItemLink(tx.special, tx.item.name, tx.wear)
-  const linkCSFloat = generateCSFloatItemLink(tx.special, tx.item.name, tx.wear)
+  const quality = tx.item.quality
+  const exterior = tx.item.exterior
+
+  //Links 
+  const linkSteam = generateSteamItemLink(quality, tx.item.name, exterior)
+  const linkCSFloat = generateCSFloatItemLink(tx.item.name)
   
   const borColor = {
     borderColor: `${tx.type === "BUY" ? "var(--accent-border)" : "var(--accent-red)"}`
   }
 
-  const wearFontColor = {
-    color: `${wearColor[tx.wear]}`
+  const exteriorFontColor = {
+    color: `${exteriorColor[exterior]}`
   }
 
-  const qualCol = qualityColors[tx.item.itemQuality];
+  const qualCol = tx.item.itemColor;
   const qualBackColors = {
-    boxShadow: `0px -5px 20px 35px ${qualCol}`,
-    background: `${qualCol}`
+    boxShadow: `0px -5px 20px 35px #${qualCol}`,
+    background: `#${qualCol}`
   }
 
   let tradeStatus: {name: string, color: string}
@@ -96,6 +96,12 @@ function TransactionCard({ tx, onDelete, setNotification }: TransactionCardProps
     )
   }
 
+  const exteriorFormat = exteriorCut[exterior]
+  let name = tx.item.name
+  if(exteriorFormat) {
+    name = name.substring(0, name.length - (exterior.length + 2))
+  }
+
   return (
     <div key={tx.id} className="transaction-card" style={borColor}>
 
@@ -125,14 +131,13 @@ function TransactionCard({ tx, onDelete, setNotification }: TransactionCardProps
 
         <div className="transaction-info">
           <p className="item-name">
-            {tx.wear !== "NONE" &&  (
-              <span className="item-wear" style={wearFontColor}>[{tx.wear}]</span>
+            {exteriorTypes.includes(exterior) && (
+              <span className="item-exterior" style={exteriorFontColor}>[{exteriorFormat}]</span>
             )}
-            <span className="item-special">{specialFormat ?? ""}</span>
-            {tx.item.name}{" "}
+            <span>{name}{" "}</span>
             <strong className="tx-card-price">({tx.price}$)</strong>
           </p>
-          <p>Market: {maketNameFormat}</p>
+          <p>Market: {tx.market.name}</p>
           <p>Qty: {tx.quantity}</p>
           <p>Status: {tx.itemStatus}</p>
           <p>Date: {formatted.time}  {formatted.date}</p>

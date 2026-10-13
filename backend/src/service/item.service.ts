@@ -2,8 +2,9 @@
 
 import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma";
-import { wearTypes } from "../types/transaction.types";
+import { wearCategory, wearTypes } from "../types/transaction.types";
 import * as cheerio from "cheerio";
+import test from "node:test";
 
 
 export async function getAllItems() {
@@ -32,24 +33,31 @@ export async function getItem(id: number) {
 }
 
 
-export async function createItem(tx: Prisma.TransactionClient, data: { name: string, wear: string }) {
+export async function createItem(tx: Prisma.TransactionClient, name: string) {
 
-  if(!data.name?.trim()) {
+  if(!name?.trim()) {
     throw new Error("Item name is required")
   }
 
     
   const item = await tx.item.findUnique({
     where: {
-      name: data.name
+      name
     }
   })
 
-  if(item && item.itemCollection) {
+  if(item && item.collection) {
     return item
   }
 
-  const itemData = await getSteamItemData(data)
+  const itemData = await getSteamItemData({name})
+
+  if (!itemData) {
+    throw new Error("Steam item data not found")
+  }
+
+  const main = itemData.main
+  const tags = itemData.tags
 
   if(item) {
     return await tx.item.update({
@@ -57,46 +65,109 @@ export async function createItem(tx: Prisma.TransactionClient, data: { name: str
         id: item.id
       },
       data: {
-        imageUrl: itemData.imageId,
-        itemType: itemData.itemType,
-        weaponType: itemData.weaponType,
-        itemCollection: itemData.itemCollection,
-        itemQuality: itemData.itemQuality
+        name: name,
+        marketHashName: String(main.market_hash_name),
+        marketBucketGroupId: String(main.market_bucket_group_id ?? ""),
+        imageUrl: String(main.imageURL ?? ""),
+        itemColor: String(main.color ?? ""),
+        backgroundColor: String(main.backgroundColor ?? ""),
+        classId: String(main.classId),
+
+        itemType: tags.Type?.name,
+        itemTypeIterName: tags.Type?.internalName,
+
+        collection: tags.Collection?.name,
+        collectionIterName: tags.Collection?.internalName,
+        
+        quality: tags.Quality?.name,
+        qualityIterName: tags.Quality?.internalName,
+        
+        rarity: tags.Rarity?.name,
+        rarityIterName: tags.Rarity?.internalName,
+        
+        exterior: tags.Exterior?.name,
+        exteriorIterName: tags.Exterior?.internalName
       }
     }) 
   }
   
   return await tx.item.create({
     data: {
-      name: data.name,
-      imageUrl: itemData.imageId,
-      itemType: itemData.itemType,
-      weaponType: itemData.weaponType,
-      itemCollection: itemData.itemCollection,
-      itemQuality: itemData.itemQuality
+      name: name,
+      marketHashName: String(main.market_hash_name),
+      marketBucketGroupId: String(main.market_bucket_group_id ?? ""),
+      imageUrl: String(main.imageURL ?? ""),
+      itemColor: String(main.color ?? ""),
+      backgroundColor: String(main.backgroundColor ?? ""),
+      classId: String(main.classId),
+      appId: Number(main.appId),
+
+      itemType: tags.Type?.name,
+      itemTypeIterName: tags.Type?.internalName,
+
+      weaponType: tags.Weapon?.name,
+      weaponTypeIterName: tags.Weapon?.internalName,
+
+      collection: tags.Collection?.name,
+      collectionIterName: tags.Collection?.internalName,
+
+      quality: tags.Quality?.name,
+      qualityIterName: tags.Quality?.internalName,
+
+      rarity: tags.Rarity?.name,
+      rarityIterName: tags.Rarity?.internalName,
+
+      exterior: tags.Exterior?.name,
+      exteriorIterName: tags.Exterior?.internalName
     }
   })
 }
 
 
-export async function updateItem(tx: Prisma.TransactionClient, id: number, data: {name: string, wear: string}) {
-  if(!data) {
-    throw new Error("Item data is required")
+export async function updateItem(tx: Prisma.TransactionClient, id: number, name: string) {
+  if(!name) {
+    throw new Error("Item name is required")
   }
 
-  const itemData = await getSteamItemData(data)
-    
+  const itemData = await getSteamItemData({name})
+  
+  if(!itemData) {
+    throw new Error("Steam item data not found")
+  }
+
+  const main = itemData.main
+  const tags = itemData.tags
+
   return await tx.item.update({
     where: {
       id
     },
     data: {
-      name: data.name,
-      imageUrl: itemData.imageId,
-      itemType: itemData.itemType,
-      weaponType: itemData.weaponType,
-      itemCollection: itemData.itemCollection,
-      itemQuality: itemData.itemQuality
+      name: name,
+      marketHashName: String(main.market_hash_name),
+      marketBucketGroupId: String(main.market_bucket_group_id ?? ""),
+      imageUrl: String(main.imageURL ?? ""),
+      itemColor: String(main.color ?? ""),
+      backgroundColor: String(main.backgroundColor ?? ""),
+      classId: String(main.classId),
+
+      itemType: tags.Type?.name,
+      itemTypeIterName: tags.Type?.internalName,
+
+      weaponType: tags.Weapon?.name,
+      weaponTypeIterName: tags.Weapon?.internalName,
+
+      collection: tags.Collection?.name,
+      collectionIterName: tags.Collection?.internalName,
+
+      quality: tags.Quality?.name,
+      qualityIterName: tags.Quality?.internalName,
+
+      rarity: tags.Rarity?.name,
+      rarityIterName: tags.Rarity?.internalName,
+
+      exterior: tags.Exterior?.name,
+      exteriorIterName: tags.Exterior?.internalName
     }
   })
 }
@@ -123,65 +194,59 @@ export async function deleteItem(id: number) {
 }
 
 
-async function getSteamItemData(data: { name: string, wear: string }) {
-  const wearFormat = wearTypes[data.wear as keyof typeof wearTypes] 
-  const url = `https://steamcommunity.com/market/listings/730/`
-  let formatUrl = `${encodeURIComponent(`${data.name} (${wearFormat})`)}`
-  console.log(formatUrl)
-  if(data.wear === "NONE") {
-    formatUrl = `${encodeURIComponent(`${data.name}`)}`
-  }
-  const response = await fetch(`${url}${formatUrl}`, {
+export async function getSteamItemData(data: { name: string} ) {
+  const queryUrl = createMarketQuery(data.name)
+  console.log(queryUrl)
+  const res = await fetch(queryUrl, {
     headers: {
-      "User-Agent":
-        "Mozilla/5.0",
-      "Accept":
-        "application/json, text/javascript, */*; q=0.01",
-      "X-Requested-With":
-        "XMLHttpRequest",
-      "Referer":
-        "https://steamcommunity.com/market/",
-      }
-  });
+      "User-Agent": "Mozilla/5.0",
+      "X-Requested-With": "XMLHttpRequest",
+      "Referer": "https://steamcommunity.com/market/"
+    }
+  })
 
-  const html = await response.text();
+  const resJson = await res.json()
+  const resData = resJson.data 
 
-  const $ = cheerio.load(html);
-  const image = $('link[as="image"]')
-      .map((_, el) => $(el).attr("href"))
-      .get()
-      .find(url => url?.includes("/economy/image/"));
-  
-  const imageId = image?.split("/economy/image/")[1]?.split("/")[0]
-
-  const itemData = $("a")
-    .filter((_, el) => {
-      return $(el).attr("href")?.includes("/search?category_Type") ?? false;
-    })
-    .first()
-    .parent()
-    .text();
-    
-  let itemType = null
-  let weaponType = null
-  let itemCollection = null
-  let itemQuality = null
-    
-  if(itemData.match(/Type:\s*(.*?)Weapon:/)?.[1]) {
-    itemType = "weapon";
-    weaponType = itemData.match(/Type:\s*(.*?)Weapon:/)?.[1];
-    itemCollection = itemData.match(/Collection:\s*(.*?)Category:/)?.[1];
-    itemQuality = itemData.match(/Quality:\s*(.*?)Exterior:/)?.[1];
-  } else  if(itemData.match(/Type:\s*(.*?)Category:/)?.[1] === "Charm") {
-    itemType = itemData.match(/Type:\s*(.*?)Category:/)?.[1];
-    itemQuality = itemData.match(/Quality:\s*(.*?)Charms /)?.[1];
-    itemCollection = itemData.match(/Collection:\s*(.*?)$/)?.[1];
-  } else if(itemData.match(/Type:\s*(.*?)Collection:/)?.[1] === "Container") {
-    itemType = itemData.match(/Type:\s*(.*?)Collection:/)?.[1];
-    itemCollection = itemData.match(/Collection:\s*(.*?)Category:/)?.[1];
-    itemQuality = itemData.match(/Quality:\s*(.*?)Tournament:/)?.[1];
+  if(!resData) {
+    return false
   }
-  // console.log("tssf",itemType,weaponType, itemQuality, itemCollection)
-  // console.log(imageId)
-  return {imageId, itemType, weaponType, itemCollection, itemQuality}
+
+  
+  const itemInfo = Object.fromEntries(
+    resData.tags.map((tag: {
+      category: string,
+      internal_name: string,
+      localized_tag_name: string,
+    }) => {
+      let category:string = tag.category
+      if(tag.category === "KeychainCapsule" || tag.category === "StickerCapsule" || tag.category === "ItemSet") {
+        category = "Collection"
+      }
+      return [
+        category,
+        {
+          internalName: tag.internal_name,
+          name: tag.localized_tag_name,
+        }
+      ]
+    })
+  )
+  
+  const itemData: Record<string, number | string> = {
+    appId: resData.appid,
+    classId: resData.classid,
+    imageURL: resData.icon_url,
+    market_hash_name: resData.market_hash_name,
+    market_bucket_group_id: resData.market_bucket_group_id,
+    color:  resData.name_color,
+    backgroundColor: resData.background_color
+  } 
+
+  return { main: itemData, tags: itemInfo }
+}
+
+function createMarketQuery(itemName: string) {
+  console.log(itemName)
+  return `https://steamcommunity.com/market/actions?q=QueryDescription&qp=%5B730%2C%22${encodeURIComponent(itemName)}%22%2Cnull%5D`
 }

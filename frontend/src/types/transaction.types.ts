@@ -2,8 +2,7 @@
 
 export type TransactionType = {
   id: number;
-  special: ("NORMAL" | "SOUVENIR" | "STATTRAK");
-  wear: ("FN" | "MW" | "FT" | "WW" | "BS" | "NONE");
+
   floatValue: number;
   price: number;
   type: ("BUY" | "SELL");
@@ -14,7 +13,6 @@ export type TransactionType = {
   csFloatId?: string;
   steamAssetId?: string;
   steamInstanceId?: string;
-  steamClassId?: string;
 
   roi: number | 0;
   sourceBuyId?: number;
@@ -28,11 +26,33 @@ export type TransactionType = {
   item: {
     id: number;
     name: string;
-    imageUrl: string;
+    marketHashName: string
+    marketBucketGroupId:       string;
+    imageUrl:      string;
+    itemColor:     string;
+    backgroundColor:    string;
+    classId:   string;
+    appId:   number;
+
     itemType: string;
-    itemCollection: string;
-    itemQuality: string;
+    itemTypeIterName: string;
+ 
+    weaponType: string;
+    weaponTypeIterName: string;
+ 
+    collection: string;
+    collectionIterName: string;
+ 
+    quality: string;
+    qualityIterName: string;
+ 
+    rarity: string;
+    rarityItrName: string;
+ 
+    exterior: string;
+    exteriorIterName: string;
   };
+
   market: {
     name: string
   }
@@ -46,68 +66,50 @@ export type FilterTxType = {
   itemStatus: string | null;
 }
 
-export const specialTypes: Record<string, string>  = {
-  "StatTrak™": "STATTRAK",
-  "StatTrak": "STATTRAK",
-  "Souvenir": "SOUVENIR"
-};
+export const qualityTypes: Array<string>  = ["StatTrak™", "Souvenir"];
 
-export const wearTypes: Record<string, string> = {
+export const exteriorTypes: Array<string> = ["Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"]
+
+export const floatValues: Record<string, number> = {
+  "Factory New": 0.06,
+  "Minimal Wear": 0.14,
+  "Field-Tested": 0.25,
+  "Well-Worn": 0.41,
+  "Battle-Scarred": 0.67,
+}
+
+export const exteriorCut: Record<string, string> = {
   "Factory New": "FN",
   "Minimal Wear": "MW",
   "Field-Tested": "FT",
   "Well-Worn": "WW",
   "Battle-Scarred": "BS",
-};
-
-export const floatValues: Record<string, number> = {
-  "FN": 0.06,
-  "MW": 0.14,
-  "FT": 0.25,
-  "WW": 0.41,
-  "BS": 0.67,
-  "NONE": 0
 }
-
-
-
-
 
 
 // Steam Search props
-export const steamWearSearch: Record<string, string> = {
-  FN: "WearCategory0",
-  MW: "WearCategory1",
-  FT: "WearCategory2",
-  WW: "WearCategory3",
-  BS: "WearCategory4",
-  NONE: ""
+export const steamExteriorSearch: Record<string, string> = {
+  "Factory New": "WearCategory0",
+  "Minimal Wear": "WearCategory1",
+  "Field-Tested": "WearCategory2",
+  "Well-Worn": "WearCategory3",
+  "Battle-Scarred": "WearCategory4",
 }
 
 export const steamSpecialSearch: Record<string, string>= {
-  NORMAL: "normal",
-  STATTRAK: "strange",
-  SOUVENIR: "tournament",
+  "Normal": "normal",
+  "StatTrak™": "strange",
+  "Souvenir": "tournament",
 }
 
 
 
 // colors
-export const wearColor: Record<string, string> = {
-  FN: "var(--fn-color)",
-  MW: "var(--mw-color)",
-  FT: "var(--ft-color)",
-  WW: "var(--ww-color)",
-  BS: "var(--bs-color)",
-  NONE: "var(--classifield)",
-}
-
-export const qualityColors: Record<string, string> = {
-  "Consumer Grade": "var(--consumer-grade)",
-  "Industrial Grade": "var(--industrial-grade)",
-  "Mil-Spec Grade": "var(--mil-spec)",
-  "Restricted": "var(--restricted)",
-  "Classified": "var(--classifield)",
-  "Covert": "var(--covert)",
-  "Contraband": "var(--contraband)"
+export const exteriorColor: Record<string, string> = {
+  "Factory New": "var(--fn-color)", 
+  "Minimal Wear": "var(--mw-color)",
+  "Field-Tested": "var(--ft-color)",
+  "Well-Worn": "var(--ww-color)",
+  "Battle-Scarred": "var(--bs-color)",
+  "NONE": "var(--classifield)",
 }

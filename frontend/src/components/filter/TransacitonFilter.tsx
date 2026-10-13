@@ -1,14 +1,33 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import type { FilterTxType } from "../../types/transaction.types";
 import "../../styles/transaction/txFilterStyle.css"
+import { api } from "../../api/axios";
+import type { MarketType } from "../../types/market.types";
 
 type TransacitonFilterProps = {
   filter: FilterTxType;
   onChange: (e: React.MouseEvent<HTMLButtonElement> | React.ChangeEvent<HTMLInputElement>) => void;
 }
 
+
 function TransactionFilter( { filter, onChange }: TransacitonFilterProps) {
 
+  const [markets, setMarkets] = useState<MarketType[]>([])
+  
+  useEffect(() => {
+    async function getMarkets() {
+      try {
+        const res = await api.get("/market/")
+        
+        setMarkets(res.data.data)
+      } catch (e) {
+        console.log(e)
+      }
+    } 
+    getMarkets()
+
+
+  }, [])
   return(
     <div className="transaction-filter">
       <div className="filter-search-container input-rel">
@@ -19,20 +38,15 @@ function TransactionFilter( { filter, onChange }: TransacitonFilterProps) {
       <div className="filter-body-container">
         <h2 className="filter-select-header">Markets</h2>
         <div className="filter-select-container">
-          <button name="marketId"
-            className={`action-btn btn-default ${filter.marketId === "1" ? "active-action" : ""}`}
-            value={"1"}
+          {markets.map((m) => (
+            <button key={m.id} name="marketId"
+            className={`action-btn btn-default ${filter.marketId === `${m.id}` ? "active-action" : ""}`}
+            value={m.id}
             onClick={onChange}
-          >
-            Steam
-          </button>
-          <button name="marketId"
-            className={`action-btn btn-default ${filter.marketId === "5" ? "active-action" : ""}`}
-            value={"5"}
-            onClick={onChange}
-          >
-            CSFloat
-          </button>
+            >
+              {m.name}
+            </button>
+          ))}
         </div>
       </div>
 

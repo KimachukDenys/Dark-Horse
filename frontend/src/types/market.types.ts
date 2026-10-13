@@ -8,11 +8,3 @@ export type MarketType = {
     currency: ("USD" | "EUR" | "UAH");
   }
 }
-
-export const MarketName: Record<string, string> = {
-  "CSFLOAT": "CSFloat",
-  "STEAM": "Steam",
-  "DMarket": "DMarket",
-  "SKINPORT": "SkinPort",
-  "TRADEIT": "TradeIT" 
-}

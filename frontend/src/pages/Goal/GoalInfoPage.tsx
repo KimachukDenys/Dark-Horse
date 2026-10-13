@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../../api/axios";
-import { MarketName } from "../../types/market.types";
 import { GoalStatusAndColor } from "../../types/goal.types";
 import type { GoalType } from "../../types/goal.types";
 import Notification from "../../components/notification/Notification";
@@ -50,8 +49,8 @@ function GoalInfoPage() {
   const goal = data.goal
   const stats = data.stats
 
-  const sourceMarketName = MarketName[goal.sourceMarket.name]
-  const targetMarketName = MarketName[goal.targetMarket.name]
+  const sourceMarketName = goal.sourceMarket.name
+  const targetMarketName = goal.targetMarket.name
   const status = GoalStatusAndColor[goal.status]
 
   const progressColor = status.name === "Completed" ? "var(--complete)" :
@@ -95,7 +94,7 @@ function GoalInfoPage() {
                 background: progressColor}}>
               </div>
             </div>
-            <p>{stats.progres}%</p>
+            <p>{Number(stats.progres).toFixed(2)}%</p>
           </div>
           <div className="goal-description">
             <strong>Description:</strong>
@@ -122,7 +121,7 @@ function GoalInfoPage() {
             </div>
             <div className="gs-highlight">
               <p>ROI:</p>
-              <strong className={investColor}>{investRoi}%</strong>
+              <strong className={investColor}>{Number(investRoi).toFixed(2)}%</strong>
             </div>
           </div>
 
@@ -130,11 +129,11 @@ function GoalInfoPage() {
             <div className="gs-left-side">
 
               <div className="gs-highlight">
-                <p>Spent <span>({targetMarketName})</span></p>
+                <p>Spent <span>({sourceMarketName})</span></p>
                 <strong>{stats.spent}$</strong>
               </div>
               <div className="gs-highlight">
-                <p>Returned <span>({sourceMarketName})</span></p>
+                <p>Returned <span>({targetMarketName})</span></p>
                 <strong>{stats.returned}$</strong>
               </div>
             </div>
@@ -144,7 +143,7 @@ function GoalInfoPage() {
             </div>
             <div className="gs-highlight">
               <p>ROI:</p>
-              <strong className={profitColor}>{profitSign}{stats.roi}%</strong>
+              <strong className={profitColor}>{profitSign}{Number(stats.roi).toFixed(2)}%</strong>
             </div>
           </div>
         </div>
