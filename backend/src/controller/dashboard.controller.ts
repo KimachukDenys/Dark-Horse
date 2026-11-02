@@ -3,6 +3,7 @@ import { getDashboard as getDashboardService } from "../service/dashboard.servic
 
 export async function getDashboard(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const now = new Date()
     const monthBefore = new Date(now)
     monthBefore.setMonth(now.getMonth() - 1)
@@ -15,7 +16,7 @@ export async function getDashboard(req: Request, res: Response) {
     const from = reqDate.from ? new Date(reqDate.from) : monthBefore
     const to = reqDate.to ? new Date(reqDate.to) : tomorrow
 
-    const transactions = await getDashboardService(from, to)
+    const transactions = await getDashboardService(userId, from, to)
 
     res.json({
       message: "Dashboard data got successfully",

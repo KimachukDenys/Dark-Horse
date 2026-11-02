@@ -2,17 +2,19 @@ import React, { useEffect, useState } from "react";
 import { api } from "../api/axios";
 import { qualityTypes, exteriorTypes, floatValues } from "../types/transaction.types";
 import { Link, useParams } from "react-router-dom";
-import { calculation, roiCalculation } from "../utils/calculation";
+import { CurrencyInput } from "../components/inputs/CurrencyInput";
+import { calculation, currencyCalculation } from "../utils/calculation";
 import Notification from "../components/notification/Notification";
-import type { MarketType } from "../types/market.types";
+
 import "../styles/transaction/txFormStyles.css"
 import axios from "axios";
+import { useWallet } from "../hooks/wallet.context";
 
 
 
 function TransactionForm({edit = false, sell = false, same = false}) {
   const { txId } = useParams();
-  const [markets, setMarkets] = useState<MarketType[]>([]);
+  const {wallets, getWallets} = useWallet();
   const [itemInput, setItemInput] = useState("");
   const [priceInput, setPriceInput] = useState("10");
   const [data, setData] = useState({
@@ -25,7 +27,7 @@ function TransactionForm({edit = false, sell = false, same = false}) {
     quantity: 1,
     itemCurrency: "UAH",
     sourceBuyId: undefined as number | undefined,
-    marketId: "1",
+    walletId: "1",
     itemId: 0,
     acquiredAt: new Date().toISOString().substring(0,10)
   })
@@ -73,58 +75,61 @@ function TransactionForm({edit = false, sell = false, same = false}) {
       return
     }
 
-    if(name === "price") {
-      setPriceInput(value)
-      const calc = calculation(value);
-      const price = calc.newPrice;
-      
-      if(sell) {
-        const roiCalc = roiCalculation(
-          price,
-          roiData.buyPrice,
-          data.itemCurrency,
-          data.itemCurrency
-        );
-        setRoiData((prev) => ({
-          ...prev,
-          roi: roiCalc.roi,
-        }));
-      }
-      
-      setData((prev) => ({
-        ...prev, 
-        price,
-        quantity: Number(calc.quantity)
-      }))
-      return
-    }
-    
-    if(name === "itemCurrency") {  
-      const roiCal = roiCalculation(data.price, roiData.buyPrice, value, data.itemCurrency)
-      if(sell) {
-        setRoiData((prev) => ({
-          ...prev,
-          roi: roiCal.roi
-        }))
-      }
-
-      setPriceInput(roiCal.price.toFixed(2))
-      setData((prev) => ({
-        ...prev,
-        price: roiCal.price
-      }))
-    }
-
     setData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
+  const handelPrice = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.currentTarget.value;
+
+    setPriceInput(value)
+    const calc = calculation(value);
+    const price = calc.newPrice;
+    
+    if(sell) {
+      const roiCalc = currencyCalculation(
+        price,
+        roiData.buyPrice,
+        data.itemCurrency,
+        data.itemCurrency
+      );
+      setRoiData((prev) => ({
+        ...prev,
+        roi: roiCalc.roi,
+      }));
+    }
+    
+    setData((prev) => ({
+      ...prev, 
+      price,
+      quantity: Number(calc.quantity)
+    }))
+  }
+
+  const handleCurrency = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const {name, value} = e.currentTarget;
+
+    const roiCal = currencyCalculation(data.price, roiData.buyPrice, value, data.itemCurrency)
+    if(sell) {
+      setRoiData((prev) => ({
+        ...prev,
+        roi: roiCal.roi
+      }))
+    }
+
+    setPriceInput(roiCal.price.toFixed(2))
+    setData((prev) => ({
+      ...prev,
+      [name]: value,
+      price: roiCal.price
+    }))
+  }
   
   const handleItemName = (e: React.ChangeEvent<HTMLInputElement>) => {
     let item = e.target.value;
-
+    console.log(wallets)
     setItemInput(item)
 
     
@@ -205,7 +210,7 @@ function TransactionForm({edit = false, sell = false, same = false}) {
         itemCurrency: data.itemCurrency,
 
         sourceBuyId: Number(data.sourceBuyId) || undefined,
-        marketId: Number(data.marketId),
+        walletId: Number(data.walletId),
 
         acquiredAt: acquiredAt.toISOString()
       }
@@ -225,6 +230,9 @@ function TransactionForm({edit = false, sell = false, same = false}) {
       } else {
         res = await api.post("/transaction/create/tx", body);
       }
+
+      getWallets()
+
       setNotification({
         id: Date.now(),
         message: res.data.message,
@@ -261,10 +269,10 @@ function TransactionForm({edit = false, sell = false, same = false}) {
           type: tx.type,
           quantity: tx.quantity,
           itemCurrency: tx.itemCurrency,
-          marketId: tx.marketId.toString(),
+          walletId: tx.walletId.toString(),
           sourceBuyId: undefined,
           itemId: tx.item.id,
-          acquiredAt: tx.acquiredAt
+          acquiredAt: new Date(tx.acquiredAt).toISOString().substring(0,  10)
         })
         if(sell && txId) {
           setData((prev) => ({
@@ -279,7 +287,7 @@ function TransactionForm({edit = false, sell = false, same = false}) {
           }))
         }
         setItemInput(tx.item.name)
-        setPriceInput(tx.price)
+        setPriceInput(Number(tx.price).toFixed(2))
       } catch (e) {
         console.log(e)
       }
@@ -290,30 +298,20 @@ function TransactionForm({edit = false, sell = false, same = false}) {
     } 
   }, [edit, sell, same, txId])
 
-
-  useEffect(() => {
-    async function getMarkets() {
-      const res = await api.get("/market")
-      setMarkets(res.data.data)
-    };
-
-    getMarkets();
-  }, []);
-
   return (
     <form onSubmit={handleSubmit} className="transaction-form">
       <div className="form-left-side">
         <div className="form-select-buttons">
-          <h4>Market:</h4>
-          {markets.map((market) => (
-            <button key={market.id}
+          <h4>Wallet:</h4>
+          {wallets.map((w) => (
+            <button key={w.id}
             type="button" 
-            name="marketId"
-            className={`action-btn btn-default ${data.marketId === `${market.id}` ? "active-action" : ""}`}
-            value={market.id}
+            name="walletId"
+            className={`action-btn btn-default ${data.walletId === `${w.id}` ? "active-action" : ""}`}
+            value={w.id}
             onClick={handleInput}
             >
-              {market.name}
+              {w.market.name}
             </button>
           ))}
         </div>
@@ -483,43 +481,15 @@ function TransactionForm({edit = false, sell = false, same = false}) {
             <p>ROI: {roiData.roi.toFixed(2)}</p>
           </div>
         }
-        <div className="form-end-start-container">
-          <div className="input-rel">
-            <input type="text" name="price" id="itemPrice" className="input-field" 
-              value={priceInput}
-              onChange={handleInput}
-              placeholder=" "/>
-            <label htmlFor="itemPrice" className="input-label">Enter Price</label>
-          </div>
-          <p>Total Price: {Number(data.price).toFixed(2)}</p>
-        </div>
-        <div className="form-select-buttons">
-          <button type="button"
-            name="itemCurrency"
-            className={`action-btn btn-default ${data.itemCurrency === "UAH" ? "active-action" : ""}`}
-            value="UAH"
-            onClick={handleInput}
-          >
-            UAH
-          </button>
-          <button type="button"
-            name="itemCurrency"
-            className={`action-btn btn-default ${data.itemCurrency === "USD" ? "active-action" : ""}`}
-            value="USD"
-            onClick={handleInput}
-          >
-            USD
-          </button>
-          <button type="button"
-            name="itemCurrency"
-            className={`action-btn btn-default ${data.itemCurrency === "EUR" ? "active-action" : ""}`}
-            value="EUR"
-            onClick={handleInput}
-          >
-            EUR
-          </button>
-        </div>
-        
+        {<CurrencyInput 
+          field={{name: "price", text: "Enter Price", type: "text", currencyName: "itemCurrency"}}
+          price={priceInput}
+          totalPrice={data.price}
+          currency={data.itemCurrency}
+          priceInput={handelPrice}
+          currencyButton={handleCurrency}
+          form="Transaction"
+        />}
       </div>
       {notification && (
           <Notification 

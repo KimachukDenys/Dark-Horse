@@ -22,16 +22,16 @@ export function calculation(value: string) {
   return {newPrice, quantity}
 }
 
-export function roiCalculation(price: number, buyPrice: number, itemCurrency: string, oldCurrency: string) {
+export function currencyCalculation(price: number, buyPrice: number, itemCurrency: string, oldCurrency?: string) {
   let roi = ((price - buyPrice) / buyPrice * 100)
   
-  if(oldCurrency !== itemCurrency || itemCurrency !== "USD") {
-    const toDolar = currencyRate[oldCurrency as keyof typeof currencyRate]
+  if(oldCurrency && (oldCurrency !== itemCurrency || itemCurrency !== "USD")) {
+    const toDolar = currencyRate[oldCurrency]
     price = price / toDolar
     roi = ((price - buyPrice) / buyPrice * 100)
   }
   
-  const curConvert = currencyRate[itemCurrency as keyof typeof currencyRate]
+  const curConvert = currencyRate[itemCurrency]
   price = (price * curConvert)
   
   return {price, roi}

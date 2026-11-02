@@ -1,8 +1,8 @@
-import { GoalStatus } from "@prisma/client";
+import { CurrencyName, GoalStatus } from "@prisma/client";
 
 export type createGoalData = {
-  sourceMarketId: number;
-  targetMarketId: number;
+  sourceWalletId: number;
+  targetWalletId: number;
   status: GoalStatus;
 
   name: string;
@@ -11,6 +11,8 @@ export type createGoalData = {
   targetReceive: number;
   targetSpend: number;
   targetReturn: number;
+  investCurrency: CurrencyName;
+  receiveCurrency: CurrencyName; 
 }
 
 export type updateGoalData = {

@@ -7,20 +7,10 @@ import {
   createItem as createItemService,
   updateItem as updateItemService
 } from "./item.service";
-import { updateWalletBalance } from "./market.service";
+import { updateWalletBalance } from "./wallet.service";
 import { syncTransactionGoal } from "./goalTransaction.service";
+import { currencyCheck } from "../utils/mainUtils";
 import { Decimal } from "@prisma/client/runtime/library";
-
-
-export function currencyCheck(price: number, txCurrency: string) {
-  const currencyData = {
-    USD: 1,
-    UAH: 44.62,
-    EUR: 0.87
-  }
-
-  return price / currencyData[txCurrency as keyof typeof currencyData]
-}
 
 
 export function balanceChange(txType: string, balance: Decimal, price: number) {
@@ -40,8 +30,8 @@ export function balanceChange(txType: string, balance: Decimal, price: number) {
 }
 
 
-export async function getAllTransactions(filter: filterTransactionDTO = {}) {
-  const where: Prisma.ItemTransactionWhereInput = {}
+export async function getAllTransactions(userId: number, filter: filterTransactionDTO = {}) {
+  const where: Prisma.ItemTransactionWhereInput = {userId,}
   
   const orderBy: Prisma.ItemTransactionOrderByWithRelationInput = { acquiredAt: "desc" };
 
@@ -54,19 +44,33 @@ export async function getAllTransactions(filter: filterTransactionDTO = {}) {
   }
 
   const now = new Date()
-  
-  if(filter.tradeAble === "AVAILABLE") {
-    where.tradeBanUntil = {
-      lte: now
-    }
-  } else if(filter.tradeAble === "TRADELOCK") {
-    where.tradeBanUntil = {
-      gt: now
-    }
+  const nextDay = new Date(now)
+  nextDay.setDate(nextDay.getDate()+1)
+
+  switch (filter.tradeAble) {
+    case "AVAILABLE":
+      where.tradeBanUntil = {
+        lte: now
+      }
+      break
+
+    case "TRADELOCK":
+      where.tradeBanUntil = {
+        gt: now
+      }
+      break
+    
+    case "POSSIBLE": 
+      where.tradeBanUntil = {
+        gt: now,
+        lte: nextDay
+      }
+      break
   }
 
-  if(filter.marketId) {
-    where.marketId = Number(filter.marketId)
+
+  if(filter.walletId) {
+    where.walletId = Number(filter.walletId)
   }
 
   if(filter.search) {
@@ -92,7 +96,11 @@ export async function getAllTransactions(filter: filterTransactionDTO = {}) {
     where,
     orderBy,
     include: {
-      market: true,
+      wallet: {
+        include: {
+          market: true
+        }
+      },
       item: true
     }
   });
@@ -105,13 +113,18 @@ export async function getAllTransactions(filter: filterTransactionDTO = {}) {
 }
 
 
-export async function getTransaction(id: number) {
+export async function getTransaction(userId: number, id: number) {
   const transaction = await prisma.itemTransaction.findUnique({
     where: {
-      id
+      id,
+      userId
     },
     include: {
-      market: true,
+      wallet: {
+        include: {
+          market: true
+        }
+      },
       item: true
     }
   })
@@ -124,50 +137,39 @@ export async function getTransaction(id: number) {
 }
 
 
-export async function createTransaction(data: CreateTransactionDTO) {
+export async function createTransaction(userId: number, data: CreateTransactionDTO) {
+  console.log(data)
   return prisma.$transaction(async (tx) => {
     const newTx = data.transaction
 
-    const market = await tx.market.findUnique({
+    const wallet = await tx.wallet.findUnique({
       where: {
-        id: newTx.marketId
+        id: newTx.walletId,
+        userId
       },
       include: {
-        wallet: true
+        market: true
       }
     });
 
-    if(!market) {
-      throw new Error("Market not found")
-    };
-
-    if(!market.wallet) {
+    if(!wallet) {
       throw new Error("Wallet not found")
     };
 
     const item = await createItemService(tx, data.item.name)
-    
-    const txCurrency = newTx.itemCurrency
 
-    const price = currencyCheck(newTx.price, txCurrency)
+    const price = currencyCheck(new Prisma.Decimal(newTx.price), newTx.itemCurrency )
     
-    const balance = balanceChange(newTx.type, market.wallet.balance, price)
-    
-    const wallet = await tx.wallet.update({
-      where: {
-        marketId: market.id
-      },
-      data: {
-        balance: new Prisma.Decimal(balance)
-      }
-    })
+    updateWalletBalance(tx, newTx.walletId, userId, price, false)
 
     let roi
 
     if(data.transaction.sourceBuyId) {
       const sourceTx = await tx.itemTransaction.findUnique({
         where: {
-          id: data.transaction.sourceBuyId}
+          id: data.transaction.sourceBuyId,
+          userId
+        }
       })
       
       if(!sourceTx) {
@@ -201,8 +203,9 @@ export async function createTransaction(data: CreateTransactionDTO) {
 
         roi: roi ?? null,
         sourceBuyId: newTx?.sourceBuyId,
-        marketId: market.id,
+        walletId: newTx.walletId,
         itemId: item.id,
+        userId,
         acquiredAt,
         tradeBanUntil: tradeBanUntil
       }
@@ -210,51 +213,17 @@ export async function createTransaction(data: CreateTransactionDTO) {
 
     await syncTransactionGoal(tx, transaction, "CREATE")
 
-    return { market, wallet, item, transaction }
+    return { wallet, item, transaction }
   })
 }
 
-
-function rollbackTransaction(
-  type: string,
-  balance: Decimal,
-  price: Decimal
-) {
-  if(type === "BUY") {
-    return balance.plus(price);
-  }
-
-  if(type === "SELL") {
-    return balance.minus(price);
-  }
-
-  return balance;
-}
-
-
-function applyTransaction(
-  type: string,
-  balance: Decimal,
-  price: Decimal
-) {
-  if(type === "BUY") {
-    return balance.minus(price);
-  }
-
-  if(type === "SELL") {
-    return balance.plus(price);
-  }
-
-  return balance;
-}
-
-
-export async function updateTransaction(id: number, data: UpdateTransactionDTO) {
+export async function updateTransaction(userId: number, id: number, data: UpdateTransactionDTO) {
   return prisma.$transaction(async (tx) => {
     const newTx = data.transaction
     const oldTx = await tx.itemTransaction.findUnique({
       where: {
-        id: id
+        id: id,
+        userId
       }
     });
     
@@ -262,46 +231,36 @@ export async function updateTransaction(id: number, data: UpdateTransactionDTO) 
       throw new Error("Transaction not found")
     }
 
-    const oldMarket = await tx.market.findUnique({
+    const oldWallet = await tx.wallet.findUnique({
       where: {
-        id: oldTx.marketId
+        id: oldTx.walletId
       },
       include: {
-        wallet: true
+        market: true
       }
     })
 
-    if(!oldMarket) {
-      throw new Error("Market not found");
+    if(!oldWallet) {
+      throw new Error("Wallet not found");
     };
 
-    if(!oldMarket.wallet) {
-      throw new Error("Wallet not found")
-    };
+    await updateWalletBalance(tx, oldTx.walletId, userId, Decimal(oldTx.price), true)
 
-    let balance = rollbackTransaction(oldTx.type, oldMarket.wallet.balance, Decimal(oldTx.price))
-    await updateWalletBalance(tx, oldTx.marketId, Decimal(balance))
-
-    const newMarket = await tx.market.findUnique({
+    const newWallet = await tx.wallet.findUnique({
       where: {
-        id: newTx.marketId
+        id: newTx.walletId
       },
       include: {
-        wallet: true
+        market: true
       }
     })
 
-    if(!newMarket) {
-      throw new Error("Market not found");
+    if(!newWallet) {
+      throw new Error("Wallet not found");
     };
 
-    if(!newMarket.wallet) {
-      throw new Error("Wallet not found")
-    };    
-
-    const newPrice = currencyCheck(newTx.price, newTx.itemCurrency)
-    balance = applyTransaction(newTx.type, newMarket.wallet.balance, Decimal(newPrice))
-    const wallet = await updateWalletBalance(tx, newTx.marketId, Decimal(balance))
+    const newPrice = currencyCheck(new Prisma.Decimal(newTx.price), newTx.itemCurrency)
+    const wallet = await updateWalletBalance(tx, newTx.walletId, userId, Decimal(newPrice), false)
 
     const itemId = data.item.id
 
@@ -325,15 +284,6 @@ export async function updateTransaction(id: number, data: UpdateTransactionDTO) 
       item = await updateItemService(tx, itemId, data.item.name)
     }
 
-    const market = await tx.market.findUnique({
-      where: {
-        id: newTx.marketId
-      },
-      include: {
-        wallet: true
-      }
-    })
-
     const updateTx = await tx.itemTransaction.update({
       where: {
         id: id
@@ -353,23 +303,24 @@ export async function updateTransaction(id: number, data: UpdateTransactionDTO) 
 
         roi: newTx?.roi,
         sourceBuyId: newTx?.sourceBuyId,
-        marketId: newTx.marketId,
+        walletId: newTx.walletId,
         itemId: item.id
       }
     })
 
     await syncTransactionGoal(tx, updateTx, "UPDATE")
 
-    return { market, wallet, item, updateTx }
+    return { wallet, item, updateTx }
   })
 }
 
 
-export async function deleteTransaction(id: number) {
+export async function deleteTransaction(userId: number, id: number,) {
   return prisma.$transaction(async (tx) => {
     const oldTx = await tx.itemTransaction.findUnique({
       where: {
-        id: id
+        id,
+        userId
       }
     });
 
@@ -389,25 +340,20 @@ export async function deleteTransaction(id: number) {
       })
     }
 
-    const oldMarket = await tx.market.findUnique({
+    const oldWallet = await tx.wallet.findUnique({
       where: {
-        id: oldTx.marketId
+        id: oldTx.walletId
       },
       include: {
-        wallet: true
+        market: true
       }
     })
 
-    if(!oldMarket) {
-      throw new Error("Market not found");
+    if(!oldWallet) {
+      throw new Error("Wallet not found");
     };
 
-    if(!oldMarket.wallet) {
-      throw new Error("Wallet not found")
-    };
-
-    const balance = rollbackTransaction(oldTx.type, oldMarket.wallet.balance, Decimal(oldTx.price))
-    const wallet = await updateWalletBalance(tx, oldTx.marketId, Decimal(balance))
+    const wallet = await updateWalletBalance(tx, oldTx.walletId, userId, Decimal(oldTx.price), true)
     
     const item = await tx.item.findUnique({
       where: {
@@ -419,12 +365,6 @@ export async function deleteTransaction(id: number) {
       throw new Error("Item not found")
     }
 
-    const market = await tx.market.findUnique({
-      where: {
-        id: oldTx.marketId
-      }
-    })
-
     const deleteTx = await tx.itemTransaction.delete({
       where: {
         id: oldTx.id
@@ -433,14 +373,15 @@ export async function deleteTransaction(id: number) {
 
     await syncTransactionGoal(tx, deleteTx, "DELETE")
 
-    return { market, wallet, item, deleteTx }
+    return { wallet, item, deleteTx }
   })
 }
 
 
-export async function getAllNotSoldTx() {
-  return await prisma.itemTransaction.findMany({
+export async function getAllNotSoldTx(userId: number) {
+  const txs = await prisma.itemTransaction.findMany({
     where: {
+      userId,
       type: "BUY",
       NOT: [{
         OR: [
@@ -450,21 +391,34 @@ export async function getAllNotSoldTx() {
       }] 
     },
     include: {
-      market: true,
-      item: true
+      item: true,
+      wallet: {
+        include: {
+          market: true
+        }
+      }
     }
   })
+
+  let allInvest = txs.reduce((acum, tx) => 
+    new Prisma.Decimal(acum).plus(tx.price), new Prisma.Decimal(0))
+  return { txs, allInvest }
 }
 
 
-export async function getAllTransactionRoad(id: number) {
+export async function getAllTransactionRoad(userId: number, id: number) {
   const sourceTx = await prisma.itemTransaction.findUnique({
     where: {
-      id: id
+      id,
+      userId
     },
     include: {
       item: true,
-      market: true
+      wallet: {
+        include: {
+          market: true
+        }
+      }
     }
   })
 
@@ -480,21 +434,31 @@ export async function getAllTransactionRoad(id: number) {
 
     const buyTx = await prisma.itemTransaction.findUnique({
       where: {
-        id: sourceTx.sourceBuyId
+        id: sourceTx.sourceBuyId,
+        userId
       },
       include: {
         item: true,
-        market: true
+        wallet: {
+          include: {
+            market: true
+          }
+        }
       }
     })
 
     const childrenTx = await prisma.itemTransaction.findMany({
       where: {
-        sourceBuyId: buyTx?.id
+        sourceBuyId: buyTx?.id,
+        userId
       },
       include: {
         item: true,
-        market: true
+        wallet: {
+          include: {
+            market: true
+          }
+        }
       }
     })
 
@@ -503,22 +467,28 @@ export async function getAllTransactionRoad(id: number) {
 
   const childrenTx = await prisma.itemTransaction.findMany({
     where: {
-      sourceBuyId: id
+      sourceBuyId: id,
+      userId
     },
     include: {
       item: true,
-      market: true
+      wallet: {
+        include: {
+          market: true
+        }
+      }
     }
   })
 
-  return {sourceTx: [sourceTx], childrenTx}
+  return {sourceTx, childrenTx}
 }
 
 
-export async function updateTxStatus(id: number, quantity: number) {
+export async function updateTxStatus(userId: number, id: number, quantity: number) {
   const tx = await prisma.itemTransaction.findUnique({
     where: {
-      id
+      id,
+      userId
     }
   })
   if(!tx) {
@@ -528,7 +498,8 @@ export async function updateTxStatus(id: number, quantity: number) {
   if(tx.quantity !== quantity) {
     return await prisma.itemTransaction.update({
       where: {
-        id
+        id,
+        userId
       },
       data: {
         itemStatus: "LISTING"
@@ -538,7 +509,8 @@ export async function updateTxStatus(id: number, quantity: number) {
 
   return await prisma.itemTransaction.update({
     where: {
-      id
+      id,
+      userId
     },
     data: {
       itemStatus: "SOLD"

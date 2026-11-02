@@ -20,7 +20,9 @@
   align-items: start;
   gap: 20px;
 }
+
 .market-select-container {
+  width: 300px;
   position: relative;
   display: flex;
   justify-content: start;
@@ -28,7 +30,6 @@
   gap: 20px;
   flex-wrap: wrap;
 }
-
 
 .input-container {
   display: flex;
@@ -51,4 +52,14 @@
   gap: 20px;
   justify-content: center;
   align-items: center;
+}
+
+.target-market {
+  display: flex;
+  justify-content: end;
+
+  &>h4 {
+    display: flex;
+    justify-content: end;
+  } 
 }

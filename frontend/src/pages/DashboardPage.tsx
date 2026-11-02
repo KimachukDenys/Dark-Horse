@@ -98,8 +98,8 @@ function DashboardPage() {
       <section className="dashboard-section">
         <h2>Markets</h2>
         <div className="market-list">
-          {data.markets.map((market) => (
-            <DashboardMarket key={market.marketId} data={market}/>
+          {data.wallets.map((w) => (
+            <DashboardMarket key={w.marketId} data={w}/>
           ))}
         </div>
       </section>

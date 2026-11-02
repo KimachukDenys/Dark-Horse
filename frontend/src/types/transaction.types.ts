@@ -2,6 +2,7 @@
 
 export type TransactionType = {
   id: number;
+  userId: number;
 
   floatValue: number;
   price: number;
@@ -16,7 +17,7 @@ export type TransactionType = {
 
   roi: number | 0;
   sourceBuyId?: number;
-  marketId: number;
+  walletId: number;
   acquiredAt: string;
   tradeBanUntil: string;
   createdAt: string;
@@ -53,14 +54,18 @@ export type TransactionType = {
     exteriorIterName: string;
   };
 
-  market: {
-    name: string
+  wallet: {
+    marketId: number;
+    market: {
+      name: string;
+      hashName: string;
+    }
   }
 };
 
 export type FilterTxType = {
   search: string | null;
-  marketId: string | null;
+  walletId: string | null;
   tradeAble: string | null;
   type: string | null;
   itemStatus: string | null;
@@ -101,7 +106,6 @@ export const steamSpecialSearch: Record<string, string>= {
   "StatTrak™": "strange",
   "Souvenir": "tournament",
 }
-
 
 
 // colors

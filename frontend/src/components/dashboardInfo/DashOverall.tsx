@@ -12,7 +12,7 @@ function DashboardOverall({data}: OverallProps) {
       <div className="overall-main">
         <div className="stat-highlight">
           <span>Profit</span>
-          <strong>{data.profit}</strong>
+          <strong>{Number(data.profit).toFixed(2)}$</strong>
         </div>
 
         <div className="stat-highlight">
@@ -25,7 +25,7 @@ function DashboardOverall({data}: OverallProps) {
         <div className="stat-card">
           <h3>Purchased</h3>
 
-          <strong>{data.purchased}</strong>
+          <strong className="danger-color">{Number(data.purchased).toFixed(2)}$</strong>
 
           <div className="stat-details">
             <span>
@@ -43,7 +43,7 @@ function DashboardOverall({data}: OverallProps) {
         <div className="stat-card">
           <h3>Sales</h3>
 
-          <strong>{data.sales}</strong>
+          <strong className="success-color">{Number(data.sales).toFixed(2)}$</strong>
 
           <div className="stat-details">
             <span>
@@ -61,7 +61,7 @@ function DashboardOverall({data}: OverallProps) {
         <div className="stat-card">
           <h3>Open Capital</h3>
 
-          <strong>{data.openCapital}</strong>
+          <strong>{Number(data.openCapital).toFixed(2)}$</strong>
 
           <div className="stat-details">
             <span>

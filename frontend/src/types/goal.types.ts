@@ -1,5 +1,5 @@
 import type { TransactionType } from "./transaction.types"
-
+import type { MarketType } from "./market.types"
 
 
 export type GoalTransactionType = {
@@ -11,9 +11,10 @@ export type GoalTransactionType = {
 
 export type Goal = {
   id: number,
+  userId: number,
 
-  sourceMarketId: number,
-  targetMarketId: number,
+  sourceWalletId: number,
+  targetWalletId: number,
   status: string,
 
   name: string,
@@ -28,14 +29,14 @@ export type Goal = {
   updatedAt: string,
   closedAt?: string,
 
-  sourceMarket: {
+  sourceWallet: {
     id: number,
-    name: string
+    market: MarketType
   },
 
-  targetMarket: {
+  targetWallet: {
     id: number,
-    name: string
+    market: MarketType
   },
 
   goalTransactions: GoalTransactionType[]

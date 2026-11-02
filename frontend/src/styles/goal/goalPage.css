@@ -20,7 +20,7 @@
   flex-direction: column;
   margin: 0 auto;
   gap: 20px;
-  padding: 40px 0;
+  padding: 0 0 0 40px;
 }
 
 .goal-header-container {
@@ -32,6 +32,7 @@
 .goals-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
-  gap: 24px;
   justify-content: center;
+  gap: 24px;
+  padding: 20px 0;
 }

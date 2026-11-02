@@ -1,27 +1,28 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma";
 
-export async function getDashboard(from?: Date, to?: Date) {
+export async function getDashboard(userId: number,from?: Date, to?: Date) {
 
-  const [overall, byMarket, byFlow, month] = await Promise.all([
-    getOverallStats(from, to),
-    getMarketStats(from, to),
-    getMarketFlow(from, to),
-    getMonthlyStatistics()
+  const [overall, byWallet, byFlow, month] = await Promise.all([
+    getOverallStats(userId, from, to),
+    getMarketStats(userId,from, to),
+    getMarketFlow(userId, from, to),
+    getMonthlyStatistics(userId)
   ])
 
   
   return {
     overall,
-    markets: byMarket,
+    wallets: byWallet,
     flow: byFlow,
     months: month
   }
 }
 
-async function getOverallStats(from?: Date, to?: Date) {
+async function getOverallStats(userId: number, from?: Date, to?: Date) {
   const purchased = await prisma.itemTransaction.aggregate({
     where: {
+      userId,
       type: "BUY",
       NOT: [
         {itemStatus: "PENDING"},
@@ -99,10 +100,11 @@ async function getOverallStats(from?: Date, to?: Date) {
 
 
 
-async function getMarketStats(from?: Date, to?: Date) {
+async function getMarketStats(userId: number, from?: Date, to?: Date) {
   const purchased = await prisma.itemTransaction.groupBy({
-    by: ["marketId"],
+    by: ["walletId"],
     where: {
+      userId,
       type: "BUY",
       NOT: [
         {itemStatus: "PENDING"},
@@ -116,7 +118,7 @@ async function getMarketStats(from?: Date, to?: Date) {
       } : {})
     },
     orderBy: {
-      marketId: "asc"
+      walletId: "asc"
     },
     _sum: {
       price: true
@@ -128,7 +130,7 @@ async function getMarketStats(from?: Date, to?: Date) {
   })
 
   const sales = await prisma.itemTransaction.groupBy({
-    by: ["marketId"],
+    by: ["walletId"],
     where: {
       type: "SELL",
       ...(from || to ? {
@@ -139,7 +141,7 @@ async function getMarketStats(from?: Date, to?: Date) {
       } : {})
     },
     orderBy: {
-      marketId: "asc"
+      walletId: "asc"
     },
     _sum: {
       price: true
@@ -151,7 +153,7 @@ async function getMarketStats(from?: Date, to?: Date) {
   })
 
   const openCapital = await prisma.itemTransaction.groupBy({
-    by: ["marketId"],
+    by: ["walletId"],
     where: {
       type: "BUY",
       NOT: [
@@ -165,18 +167,22 @@ async function getMarketStats(from?: Date, to?: Date) {
     _count: true
   })
 
-  const wallets = await prisma.market.findMany({
+  const wallets = await prisma.wallet.findMany({
     include: {
-      wallet: true
+      market: true
     }
   })
 
+  if(!wallets) {
+    return
+  }
+
   const salesMap = new Map(
-    sales.map(item => [item.marketId, item])
+    sales.map(item => [item.walletId, item])
   )
 
   const openCapitalMap = new Map(
-    openCapital.map(item => [item.marketId, item])
+    openCapital.map(item => [item.walletId, item])
   )
 
   const walletMap = new Map(
@@ -184,17 +190,17 @@ async function getMarketStats(from?: Date, to?: Date) {
   )
 
   const markets = purchased.map(item => {
-    const openCapitalMarket = openCapitalMap.get(item.marketId)
-    const salesMarket = salesMap.get(item.marketId)
-    const marketWallet = walletMap.get(item.marketId)
+    const openCapitalMarket = openCapitalMap.get(item.walletId)
+    const salesMarket = salesMap.get(item.walletId)
+    const wallet = walletMap.get(item.walletId)
 
     const purchasedPrice = item._sum.price ?? new Prisma.Decimal(0)
     const purchasedAvg = item._avg.price ?? new Prisma.Decimal(0)
     const openCapitalPrice = openCapitalMarket?._sum.price ?? new Prisma.Decimal(0)
     const salesPrice = salesMarket?._sum.price ?? new Prisma.Decimal(0)
     const salesAvg = salesMarket?._avg.price ?? new Prisma.Decimal(0)
-    const balance = marketWallet?.wallet?.balance ?? new Prisma.Decimal(0)
-    const marketName = marketWallet?.name ?? null
+    const balance = wallet?.balance ?? new Prisma.Decimal(0)
+    const marketName = wallet?.market.name ?? null
 
     const netFlow = salesPrice.minus(purchasedPrice)
 
@@ -203,7 +209,7 @@ async function getMarketStats(from?: Date, to?: Date) {
       : netFlow.div(purchasedPrice).mul(100)
 
     return {
-      marketId: item.marketId,
+      walletId: item.walletId,
       purchased: purchasedPrice,
       purchasedAvg: purchasedAvg,
       purchasedCount: item._count || 0,
@@ -224,9 +230,10 @@ async function getMarketStats(from?: Date, to?: Date) {
 
 
 
-async function getMarketFlow(from?: Date, to?: Date) {
+async function getMarketFlow(userId: number, from?: Date, to?: Date) {
   const flow = await prisma.itemTransaction.findMany({
     where: {
+      userId,
       type: "SELL",
       ...(from || to ? {
         createdAt: {
@@ -240,10 +247,18 @@ async function getMarketFlow(from?: Date, to?: Date) {
     },
     include: {
       item: true,
-      market: true,
-      sourceBuy: {
+      wallet: {
         include: {
           market: true
+        }
+      },
+      sourceBuy: {
+        include: {
+          wallet: {
+            include: {
+              market: true
+            }
+          }
         }
       }
     }
@@ -258,8 +273,8 @@ async function getMarketFlow(from?: Date, to?: Date) {
     const sourceBuy = transaction.sourceBuy
     
 
-    const sourceMarket = sourceBuy.market.name
-    const sellMarket = transaction.market.name
+    const sourceMarket = sourceBuy.wallet.market.name
+    const sellMarket = transaction.wallet.market.name
 
     if(!flowMarkets[sourceMarket]) {
       flowMarkets[sourceMarket] = {
@@ -290,10 +305,11 @@ async function getMarketFlow(from?: Date, to?: Date) {
 
 
 
-async function getMonthlyStatistics() {
+async function getMonthlyStatistics(userId: number) {
   const bought = await prisma.itemTransaction.groupBy({
     by: ["createdAt"],
     where: {
+      userId,
       type: "BUY",
       OR: [
         {itemStatus: "SOLD"},

@@ -45,6 +45,6 @@ export type Dashboard = {
   overall: DashOverall,
   months: DashMonth[],
   flow: Record<string, DashFlow>,
-  markets: DashMarket[]
+  wallets: DashMarket[]
 }
 

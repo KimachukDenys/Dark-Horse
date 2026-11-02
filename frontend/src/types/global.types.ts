@@ -4,7 +4,7 @@ export type Notification = {
   type: "success" | "error" | "warning";
 };
 
-export const currencyRate = {
+export const currencyRate: Record<string, number> = {
   "USD": 1,
   "UAH": 44.62,
   "EUR": 0.87

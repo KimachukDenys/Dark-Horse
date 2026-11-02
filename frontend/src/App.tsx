@@ -1,4 +1,6 @@
 import NavBar from "./components/main/navBar";
+import { WalletContextProvider } from "./hooks/wallet.context";
+import AuthProvider from "./hooks/auth.context";
 import "./styles/fonts.css"
 import "./styles/reset.css"
 import "./styles/global.css"
@@ -10,9 +12,13 @@ function App() {
 
 
   return (
-    <div>
-      <NavBar />
-    </div>
+    <AuthProvider> 
+      <WalletContextProvider>
+        <div>
+          <NavBar />
+        </div>
+      </WalletContextProvider>
+    </AuthProvider>
   );
 }
 

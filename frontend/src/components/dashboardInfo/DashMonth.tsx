@@ -15,7 +15,7 @@ function DashboardMonth({date, month}: DashMonthProps) {
   return (
     <div className="month-stats">
       <h2>{formatedDate.month} {formatedDate.year}</h2>
-      <p>Amount: <span className={amountColor}>{month.amount}</span></p>
+      <p>Amount: <span className={amountColor}>{Number(month.amount).toFixed(2)}$</span></p>
     </div>
   )
 }

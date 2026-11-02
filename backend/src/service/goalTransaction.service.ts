@@ -11,14 +11,14 @@ export async function syncTransactionGoal(tx: Prisma.TransactionClient, transact
   if(transaction.type === "BUY") {
     goal = await tx.goal.findFirst({
       where: {
-        sourceMarketId: transaction.marketId,
+        sourceWalletId: transaction.walletId,
         status: "ACTIVE"
       }
     })
   } else {
     goal = await tx.goal.findFirst({
       where: {
-        targetMarketId: transaction.marketId,
+        targetWalletId: transaction.walletId,
         status: "ACTIVE"
       }
     })
@@ -61,8 +61,8 @@ export async function syncTransactionGoal(tx: Prisma.TransactionClient, transact
     }
 
     const isCorrectGoal = transaction.type === "BUY"
-      ? goalTransaction.goal.sourceMarketId === transaction.marketId
-      : goalTransaction.goal.targetMarketId === transaction.marketId
+      ? goalTransaction.goal.sourceWalletId === transaction.walletId
+      : goalTransaction.goal.targetWalletId === transaction.walletId
 
     if(isCorrectGoal) {
       return goalTransaction

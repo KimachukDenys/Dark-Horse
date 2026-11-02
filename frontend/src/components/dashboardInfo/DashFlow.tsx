@@ -11,7 +11,7 @@ function DashboardFlow({market, data}: DashFlowProps) {
     <div className="flow-stats">
       <div className="main-flow">
         <h2 className="header-stats">{market}</h2>
-        <p>Purchased: <strong className="danger-color">{data.purchased}</strong></p>
+        <p>Purchased: <strong className="danger-color">{Number(data.purchased).toFixed(2)}$</strong></p>
         <p>Items: {data.count}</p>
       </div>
 
@@ -21,7 +21,7 @@ function DashboardFlow({market, data}: DashFlowProps) {
         {Object.entries(data.markets).map(([market, data]) => (
           <div key={market} className="child-flow">
             <p className="cf-market-name">{market.toLowerCase()}</p>
-            <p>sales: <strong className="success-color">{data.sales}$</strong></p>
+            <p>sales: <strong className="success-color">{Number(data.sales).toFixed(2)}$</strong></p>
             <p><strong>{data.count}</strong> items</p>
           </div>
         ))}

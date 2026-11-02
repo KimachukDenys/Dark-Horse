@@ -3,11 +3,14 @@
 import { Prisma, GoalStatus } from "@prisma/client"
 import prisma from "../lib/prisma"
 import { createGoalData, updateGoalData } from "../types/goal.types"
-import { it } from "node:test"
+import { currencyCheck } from "../utils/mainUtils"
 
 
-export async function getAllGoals() {
+export async function getAllGoals(userId: number) {
   const goals =  await prisma.goal.findMany({
+    where: {
+      userId
+    },
     orderBy: {
       id: "asc"
     },
@@ -17,8 +20,16 @@ export async function getAllGoals() {
           transaction: true
         }
       },
-      sourceMarket: true,
-      targetMarket: true
+      sourceWallet: {
+        include: {
+          market: true
+        }
+      },
+      targetWallet: {
+        include: {
+          market: true
+        }
+      }
     }
   })
 
@@ -59,10 +70,11 @@ export async function getAllGoals() {
 }
 
 
-export async function getGoal(id: number) {
+export async function getGoal(userId: number, id: number) {
   const goal = await prisma.goal.findUnique({
     where: {
-      id
+      id,
+      userId
     },
     include: {
       goalTransactions: {
@@ -70,13 +82,17 @@ export async function getGoal(id: number) {
           transaction: {
             include: {
               item: true,
-              market: true
+              wallet: {
+                include: {
+                  market: true
+                }
+              }
             }
           }
         }
       },
-      sourceMarket: true,
-      targetMarket: true
+      sourceWallet: true,
+      targetWallet: true
     }
   })
 
@@ -120,7 +136,7 @@ export async function getGoal(id: number) {
 }
 
 
-export async function createGoal(data: createGoalData) {
+export async function createGoal(userId: number, data: createGoalData) {
   return await prisma.$transaction(async (tx) => {
     let status = "QUEUED" as GoalStatus
     
@@ -129,7 +145,8 @@ export async function createGoal(data: createGoalData) {
     }
     const activeGoal = await tx.goal.findFirst({
       where: {
-        sourceMarketId: data.sourceMarketId,
+        userId,
+        sourceWalletId: data.sourceWalletId,
         status: "ACTIVE"
       }
     })
@@ -138,29 +155,32 @@ export async function createGoal(data: createGoalData) {
       status = "ACTIVE"
     }
 
-
+    const invest = currencyCheck(new Prisma.Decimal(data.targetInvestment), data.investCurrency)
+    const receive = currencyCheck(new Prisma.Decimal(data.targetReceive), data.receiveCurrency)
 
     return await tx.goal.create({
       data: {
-        sourceMarketId: data.sourceMarketId,
-        targetMarketId: data.targetMarketId,
+        userId,
+        sourceWalletId: data.sourceWalletId,
+        targetWalletId: data.targetWalletId,
         status: status,
         
         name: data.name,
         description: data?.description,
-        targetInvestment: new Prisma.Decimal(data.targetInvestment),
-        targetReceive: new Prisma.Decimal(data.targetReceive),
+        targetInvestment: invest,
+        targetReceive: receive,
       }
     })
   })
 }
 
 
-export async function updateGoal(id: number, data: updateGoalData) {
+export async function updateGoal(userId: number, id: number,  data: updateGoalData) {
   return await prisma.$transaction(async (tx) => {
     const goal = await tx.goal.findUnique({
       where: {
-        id
+        id,
+        userId
       }
     })
 
@@ -168,29 +188,35 @@ export async function updateGoal(id: number, data: updateGoalData) {
       throw new Error("Goal not found")
     }
     
+    const invest = currencyCheck(new Prisma.Decimal(data.goal.targetInvestment), data.goal.investCurrency)
+    const receive = currencyCheck(new Prisma.Decimal(data.goal.targetReceive), data.goal.receiveCurrency)
+
+
     return await tx.goal.update({
       where: {
-        id
+        id,
+        userId
       },
       data: {
-        sourceMarketId: data.goal.sourceMarketId,
-        targetMarketId: data.goal.targetMarketId,
+        sourceWalletId: data.goal.sourceWalletId,
+        targetWalletId: data.goal.targetWalletId,
         status: data.goal?.status,
         
         name: data.goal.name,
         description: data.goal?.description,
-        targetInvestment: new Prisma.Decimal(data.goal.targetInvestment),
-        targetReceive: new Prisma.Decimal(data.goal.targetReceive),
+        targetInvestment: new Prisma.Decimal(invest),
+        targetReceive: new Prisma.Decimal(receive),
       }
     })
   })
 }
 
-export async function activateGoal(id: number) {
+export async function activateGoal(userId: number, id: number) {
   return await prisma.$transaction(async (tx) => {
     const goal = await tx.goal.findUnique({
       where: {
-        id
+        id,
+        userId
       }
     })
 
@@ -205,15 +231,15 @@ export async function activateGoal(id: number) {
     const oldActive = await tx.goal.findFirst({
       where: {
         status: "ACTIVE",
-        sourceMarketId: goal.sourceMarketId,
-        targetMarketId: goal.targetMarketId 
+        sourceWalletId: goal.sourceWalletId
       }
     })
 
     if(oldActive) {
       await tx.goal.update({
         where: {
-          id: oldActive.id
+          id: oldActive.id,
+          userId
         }, 
         data: {
           status: "QUEUED"
@@ -223,7 +249,8 @@ export async function activateGoal(id: number) {
 
     return await tx.goal.update({
       where: {
-        id
+        id,
+        userId
       }, 
       data: {
         status: "ACTIVE"
@@ -233,12 +260,13 @@ export async function activateGoal(id: number) {
 }
 
 
-export async function completeGoal(id: number, data: updateGoalData) {
+export async function completeGoal(userId: number, id: number, data: updateGoalData) {
   return await prisma.$transaction(async (tx) => {
     const goalData = data.goal
     const goal = await tx.goal.findUnique({
       where: {
-        id
+        id,
+        userId
       }
     })
 
@@ -246,22 +274,19 @@ export async function completeGoal(id: number, data: updateGoalData) {
       throw new Error("Goal doesn't exist")
     }
 
-    if(goalData.targetReceive > goalData.targetSpend) {
-      throw new Error("Goal doesn't complete")
-    }
 
     // calculation of goal deviation 
     const deviation = getAmountDeviation(Number(goal.targetReceive))
     const spent = goalData.targetSpend
 
-
     if(deviation.rMin > spent || spent > deviation.rMax) {
-      throw new Error(`The amount spent exceeds the funds received, and there may be a discrepancy in ${deviation.dev.toFixed(2)}$`)
+      throw new Error("Goal doesn't complete")
     }
 
     return await tx.goal.update({
       where: {
-        id
+        id,
+        userId
       },
       data: {
         status: "COMPLETED",
@@ -274,11 +299,12 @@ export async function completeGoal(id: number, data: updateGoalData) {
 }
 
 
-export async function deleteGoal(id: number) {
+export async function deleteGoal(userId: number, id: number) {
   return await prisma.$transaction(async (tx) => {
     const goal = await tx.goal.findUnique({
       where: {
-        id
+        id,
+        userId
       }
     })
 
@@ -288,7 +314,8 @@ export async function deleteGoal(id: number) {
 
     const deleteGoal = await tx.goal.delete({
       where: {
-        id
+        id,
+        userId
       }
     })
 
@@ -301,7 +328,7 @@ function getAmountDeviation(received: number) {
   const k = 0.5
   const deviation = k * Math.sqrt(received)
   const receivedMax = received + deviation
-  const receivedMin = received + deviation
+  const receivedMin = received * 0.98
 
   return {dev: deviation, rMax: receivedMax, rMin: receivedMin}
 }

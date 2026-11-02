@@ -14,7 +14,8 @@ import {
 
 export async function getAllTransactions(req: Request, res: Response) {
   try {
-    const transactions = await getAllTxService(req.query);
+    const userId = req.session.userId!
+    const transactions = await getAllTxService(userId, req.query);
 
     res.json({
       message: "Transactions gets successfully",
@@ -37,8 +38,9 @@ export async function getAllTransactions(req: Request, res: Response) {
 
 export async function getTransaction(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id)
-    const transaction = await getTxService(id)
+    const transaction = await getTxService(userId, id)
 
     res.json({
       message: "Transaction get successfully",
@@ -61,20 +63,17 @@ export async function getTransaction(req: Request, res: Response) {
 
 export async function createTransaction(req: Request, res: Response) {
   try {
-    const txData = await createTxService(req.body)
+    const userId = req.session.userId!
+    const txData = await createTxService(userId, req.body)
 
     res.status(203).json({
       message: "Transaction created successfully",
-      market: txData.market,
       wallet: txData.wallet,
       item: txData.item,
       transaction: txData.transaction
     })
   } catch (e: unknown) {
-    if(
-      (e instanceof Error && e.message === "Market not found") ||
-      (e instanceof Error && e.message === "Wallet not found")
-    ) {
+    if(e instanceof Error && e.message === "Wallet not found") {
       return res.status(404).json({
         message: e.message
       })
@@ -103,19 +102,18 @@ export async function createTransaction(req: Request, res: Response) {
 
 export async function updateTransaction(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id)
-    const updTxData = await updateTxService(id, req.body)
+    const updTxData = await updateTxService(userId, id, req.body)
 
     res.json({
       message: "Transaction updated successfully",
-      market: updTxData.market,
       wallet: updTxData.wallet,
       item: updTxData.item,
       transation: updTxData.updateTx,
     })
   } catch (e) {
     if(
-      (e instanceof Error && e.message === "Market not found") ||
       (e instanceof Error && e.message === "Wallet not found") ||
       (e instanceof Error && e.message === "Item not found") ||
       (e instanceof Error && e.message === "Need itemId to update")
@@ -136,19 +134,18 @@ export async function updateTransaction(req: Request, res: Response) {
 
 export async function deleteTransaction(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id)
-    const delTxData = await deleteTxService(id) 
+    const delTxData = await deleteTxService(userId, id) 
 
     res.json({
       message: "Transaction deleted successfully",
-      market: delTxData.market,
       wallet: delTxData.wallet,
       item: delTxData.item,
       transaction: delTxData.deleteTx,
     })
   } catch (e) {
     if(
-      (e instanceof Error && e.message === "Market not found") ||
       (e instanceof Error && e.message === "Wallet not found") ||
       (e instanceof Error && e.message === "Item not found")
     ) {
@@ -168,7 +165,8 @@ export async function deleteTransaction(req: Request, res: Response) {
 
 export async function getAllNotSoldTx(req: Request, res: Response) {
   try {
-    const onInventory = await getAllNotSoldTxService()
+    const userId = req.session.userId!
+    const onInventory = await getAllNotSoldTxService(userId)
 
     res.json({
       message: "Data gets successfully",
@@ -185,8 +183,9 @@ export async function getAllNotSoldTx(req: Request, res: Response) {
 
 export async function getAllTransactionRoad(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id)
-    const txs = await getAllTxRoadService(id);
+    const txs = await getAllTxRoadService(userId, id);
     
     res.json({
       message: "Transaction road get successfully",
@@ -203,8 +202,9 @@ export async function getAllTransactionRoad(req: Request, res: Response) {
 
 export async function updateTxStatus(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id)
-    await updateTxStatusService(id, req.body.quantity)
+    await updateTxStatusService(userId, id, req.body.quantity)
 
     res.json({
       message: "Transaction status updated successfully"

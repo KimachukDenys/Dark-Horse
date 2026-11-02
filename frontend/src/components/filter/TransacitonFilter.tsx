@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react"
+import React from "react"
 import type { FilterTxType } from "../../types/transaction.types";
+import { useWallet } from "../../hooks/wallet.context";
 import "../../styles/transaction/txFilterStyle.css"
-import { api } from "../../api/axios";
-import type { MarketType } from "../../types/market.types";
 
 type TransacitonFilterProps = {
   filter: FilterTxType;
@@ -12,22 +11,8 @@ type TransacitonFilterProps = {
 
 function TransactionFilter( { filter, onChange }: TransacitonFilterProps) {
 
-  const [markets, setMarkets] = useState<MarketType[]>([])
+  const {wallets} = useWallet()
   
-  useEffect(() => {
-    async function getMarkets() {
-      try {
-        const res = await api.get("/market/")
-        
-        setMarkets(res.data.data)
-      } catch (e) {
-        console.log(e)
-      }
-    } 
-    getMarkets()
-
-
-  }, [])
   return(
     <div className="transaction-filter">
       <div className="filter-search-container input-rel">
@@ -36,15 +21,15 @@ function TransactionFilter( { filter, onChange }: TransacitonFilterProps) {
       </div>
 
       <div className="filter-body-container">
-        <h2 className="filter-select-header">Markets</h2>
+        <h2 className="filter-select-header">Wallets</h2>
         <div className="filter-select-container">
-          {markets.map((m) => (
-            <button key={m.id} name="marketId"
-            className={`action-btn btn-default ${filter.marketId === `${m.id}` ? "active-action" : ""}`}
-            value={m.id}
+          {wallets.map((w) => (
+            <button key={w.id} name="walletId"
+            className={`action-btn btn-default ${filter.walletId === `${w.id}` ? "active-action" : ""}`}
+            value={w.id}
             onClick={onChange}
             >
-              {m.name}
+              {w.market.name}
             </button>
           ))}
         </div>
@@ -61,6 +46,13 @@ function TransactionFilter( { filter, onChange }: TransacitonFilterProps) {
             All
           </button>
           <button name="tradeAble"
+            className={`action-btn btn-default ${filter.tradeAble === "TRADELOCK" ? "active-action" : ""}`}
+            value={"TRADELOCK"}
+            onClick={onChange}
+          >
+            Trade Locked
+          </button>
+          <button name="tradeAble"
             className={`action-btn btn-default ${filter.tradeAble === "AVAILABLE" ? "active-action" : ""}`}
             value={"AVAILABLE"}
             onClick={onChange}
@@ -68,11 +60,11 @@ function TransactionFilter( { filter, onChange }: TransacitonFilterProps) {
             Available
           </button>
           <button name="tradeAble"
-            className={`action-btn btn-default ${filter.tradeAble === "TRADELOCK" ? "active-action" : ""}`}
-            value={"TRADELOCK"}
+            className={`action-btn btn-default ${filter.tradeAble === "POSSIBLE" ? "active-action" : ""}`}
+            value={"POSSIBLE"}
             onClick={onChange}
           >
-            Trade Locked
+            Possible
           </button>
         </div>
       </div>

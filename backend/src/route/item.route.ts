@@ -9,6 +9,7 @@ import {
   deleteItem as deleteItemController,
   apiSearch
 } from "../controller/item.controller";
+import { requireAuth } from "../middleware/requireAuth";
 
 const router = Router();
 
@@ -17,8 +18,8 @@ router.get("/", allItemsController);
 router.get("/:id", getItemController);
 
 
-router.post("/create", createItemController);
-router.patch("/update/:id", updateItemController);
-router.delete("/delete/:id", deleteItemController);
+router.post("/create", requireAuth, createItemController);
+router.patch("/update/:id", requireAuth, updateItemController);
+router.delete("/delete/:id", requireAuth, deleteItemController);
 
 export default router

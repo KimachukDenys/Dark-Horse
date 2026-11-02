@@ -1,0 +1,24 @@
+.wallet-form-container {
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 750px;
+}
+
+
+.market-name-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-self: center;
+}
+
+.market-name {
+  font-family: var(--font-header);
+  font-size: 18px;
+  letter-spacing: 1px;
+}

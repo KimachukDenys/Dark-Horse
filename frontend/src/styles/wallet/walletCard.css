@@ -1,0 +1,23 @@
+.wallet-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 220px;
+  padding: 20px;
+  gap: 20px;
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+}
+
+.wallet-id {
+  font-family: var(--font-header);
+}
+
+.wallet-action-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 0 0 0;
+}

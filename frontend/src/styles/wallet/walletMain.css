@@ -1,0 +1,21 @@
+.wallet-page-container {
+  width: 1120px;
+  margin: 0 auto;
+  padding: 30px;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding-bottom: 40px;
+}
+
+.wallets-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: start;
+  align-items: center;
+  gap: 30px;
+}

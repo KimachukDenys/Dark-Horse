@@ -108,16 +108,16 @@ function GoalInfoPage() {
             <div className="gs-left-side">
               <div className="gs-highlight">
                 <p>Receive <span>({sourceMarketName})</span></p>
-                <strong>{goal.targetReceive}$</strong>
+                <strong>{Number(goal.targetReceive).toFixed(2)}$</strong>
               </div>
               <div className="gs-highlight">
                 <p>Investments <span>({targetMarketName})</span></p>
-                <strong>{goal.targetInvestment}$</strong>
+                <strong>{Number(goal.targetInvestment).toFixed(2)}$</strong>
               </div>
             </div>
             <div>
               <p>Diff</p>
-              <strong className={investColor}>{diff}$</strong>
+              <strong className={investColor}>{Number(diff).toFixed(2)}$</strong>
             </div>
             <div className="gs-highlight">
               <p>ROI:</p>
@@ -139,7 +139,7 @@ function GoalInfoPage() {
             </div>
             <div className="gs-highlight">
               <p>Profit</p>
-              <strong className={profitColor}>{profitSign}{stats.profit}$</strong>
+              <strong className={profitColor}>{profitSign}{Number(stats.profit).toFixed(2)}$</strong>
             </div>
             <div className="gs-highlight">
               <p>ROI:</p>

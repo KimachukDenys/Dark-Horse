@@ -1,4 +1,4 @@
-import { Wear, TransactionType, Status, Currency } from "@prisma/client";
+import { Wear, TransactionType, Status, CurrencyName } from "@prisma/client";
 
 
 export type ItemTypesData = {
@@ -40,7 +40,7 @@ export type TransactionData = {
   type: TransactionType;
   quantity: number;
   itemStatus: Status;
-  itemCurrency: Currency;
+  itemCurrency: CurrencyName;
 
   csFloatId?: string;
   steamAssetId?: string;
@@ -49,7 +49,7 @@ export type TransactionData = {
   
   roi?: number;
   sourceBuyId?: number;
-  marketId: number;
+  walletId: number;
   
   acquiredAt: Date;
 };
@@ -67,7 +67,7 @@ export type UpdateTransactionDTO = {
 export type filterTransactionDTO = {
   search?: string;
   type?: TransactionType;
-  marketId?: number;
+  walletId?: number;
   itemStatus?: Status; 
   tradeAble?: string;
   orderBy?: {}

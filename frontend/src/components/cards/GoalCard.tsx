@@ -9,6 +9,93 @@ import "../../styles/goal/goalCard.css"
 import "../../styles/goal/goalMain.css"
 import axios from "axios";
 
+
+function deviationCalculation(received: number) {
+  const k = 0.5
+  const deviation = k * Math.sqrt(received)
+  const receivedMax = Number(received) + deviation
+  const receivedMin = Number(received) * 0.99
+  return {deviation, receivedMax, receivedMin}
+}
+
+
+function buttonsRender(goalInfo: GoalsType, changeGoal: (action: "activate" | "complete" | "delete") => void) {
+  const goal = goalInfo.goal
+  const stats = goalInfo.stats
+  const createdAt = formatDate(goal.createdAt)
+  
+  const devCalc = deviationCalculation(Number(goal.targetReceive) ?? 0)
+
+  let completeCheck = false
+  let message
+
+  if(devCalc.receivedMin < stats.spent && stats.spent < devCalc.receivedMax ) {
+    completeCheck = true
+  } else if(stats.spent > devCalc.receivedMax) {
+    message = (
+      <p className="danger-color">
+        {`Spent limit is ${Number(devCalc.receivedMax).toFixed(2)}$,
+        invest to "Receive" be close to ${Number(stats.spent).toFixed(0)}$`}
+      </p>
+    )
+  }
+
+  return (
+    <div className="goal-card-actions">
+      <p>Created: <strong>{createdAt.date}</strong></p>
+      {message}
+      
+      {goal.status === "QUEUED" && (
+        <button type="button" className="success-btn btn-default" onClick={() => changeGoal("activate")}>Activate</button>
+      )}
+      
+      {goal.status === "ACTIVE" && completeCheck && (
+        <button type="button" className="complete-btn btn-default" onClick={() => changeGoal("complete")}>Complete</button>
+      )}
+      
+      <Link className="warning-btn btn-default" to={`/edit-goal/${goal.id}`}>Edit</Link>
+      
+      <button type="button" className="danger-btn btn-default" onClick={() =>changeGoal("delete")}>Delete</button>
+    </div>
+  )
+}
+
+
+
+function progressRender(goalInfo: GoalsType) {
+  const goal = goalInfo.goal
+  const stats = goalInfo.stats
+
+  const returnPercent = Number(goal.targetReceive) !== 0 ? (Number(stats.spent)/Number(goal.targetReceive)) * 100 : 0
+
+  const progressWidth = returnPercent > 0 && returnPercent <= 13 ? 13 : Math.min(returnPercent, 100)
+  let progressColor = goal.status === "COMPLETED" ? "var(--complete)" :
+    returnPercent >= 99 ? "var(--accent-border)" : "var(--accent)"
+
+  const devCalc = deviationCalculation(Number(goal.targetReceive) ?? 0)
+
+  if(devCalc.receivedMax < stats.spent) {
+    progressColor = "var(--accent-red)"
+  }
+
+  
+  return (
+    <div className="goal-progress">
+      <div className="progress-bar" style={{border: `2px solid ${progressColor}`}}>
+        <div className="progress-percents" style={
+          {width: `${progressWidth}%`,
+          background: progressColor}}>
+          </div>
+      </div>
+      <p style={{color: progressColor}}>{returnPercent.toFixed(2)}%</p>
+    </div>
+  )
+}
+
+
+
+
+
 type GoalCardProps = {
   goalInfo: GoalsType,
   onChange: () => void,
@@ -18,19 +105,16 @@ type GoalCardProps = {
 function GoalCard({goalInfo, onChange, setNotification}: GoalCardProps) {
   const goal = goalInfo.goal
   const stats = goalInfo.stats
-
-  const createdAt = formatDate(goal.createdAt)
   const status = GoalStatusAndColor[goal.status]
 
-  const returnPercent = Number(goal.targetReceive) !== 0 ? (Number(stats.spent)/Number(goal.targetReceive)) * 100 : 0
-  const progressWidth = returnPercent > 0 && returnPercent <= 13 ? 13 : Math.min(returnPercent, 100)
   const receivedColor = goal.status === "COMPLETED" ? "var(--complete)" :
-    Number(goal.targetReceive) !== 0 && Number(goal.targetReceive) <= stats.spent ? "var(--accent-border)" : "var(--accent-red)"
-  const progressColor = goal.status === "COMPLETED" ? "var(--complete)" :
-    returnPercent >= 100 ? "var(--accent-border)" : "var(--accent)"
+    Number(goal.targetReceive) !== 0 && Number(goal.targetReceive)*0.99 <= stats.spent ? "var(--accent-border)" : "var(--accent-red)"
 
-  const sourceMarketName = goal.sourceMarket.name
-  const targetMarketName = goal.targetMarket.name
+
+  const sourceWalletName = goal.sourceWallet.market.name
+  const targetWalletName = goal.targetWallet.market.name
+
+  
 
   async function changeGoal(action: "activate" | "complete" | "delete") {
     try {
@@ -44,8 +128,8 @@ function GoalCard({goalInfo, onChange, setNotification}: GoalCardProps) {
       if (action === "complete") {
         const body = {
           goal: {
-            sourceMarketId: goal.sourceMarketId,
-            targetMarketId: goal.targetMarketId,
+            sourceWalletId: goal.sourceWalletId,
+            targetWalletId: goal.targetWalletId,
             status: goal.status,
             name: goal.name,
             description: null,
@@ -105,56 +189,38 @@ function GoalCard({goalInfo, onChange, setNotification}: GoalCardProps) {
           <p className="gc-name">Name: <strong> {goal.name}</strong></p>
         )}
         <div className="gc-info-format">
-          <p>Markets:</p>
-          <strong>{sourceMarketName} <span>to</span> {targetMarketName}</strong>
+          <p>Wallets:</p>
+          <strong>{sourceWalletName} <span>to</span> {targetWalletName}</strong>
         </div>
         <div className="gc-profit-info">
           <div className="gc-profit-format">
             <p>Invest:</p>
-            <strong>{goal.targetInvestment}$</strong>
+            <strong>{Number(goal.targetInvestment).toFixed(2)}$</strong>
           </div>
           <div className="gc-profit-format">
             <p>Receive:</p>
-            <strong>{goal.targetReceive}$</strong>
+            <strong>{Number(goal.targetReceive).toFixed(2)}$</strong>
           </div>
             {goal.status === "COMPLETED" ? (
               <div className="gc-profit-format">
                 <p>Return:</p>
-                <strong style={{color: receivedColor}}>{goal.targetReturn}$</strong>
+                <strong style={{color: receivedColor}}>{Number(goal.targetReturn).toFixed(2)}$</strong>
               </div>
             ) : (
               <div className="gc-profit-format">
                 <p>Spent:</p>
-                <strong style={{color: receivedColor}}>{stats.spent}$</strong>
+                <strong style={{color: receivedColor}}>{Number(stats.spent).toFixed(2)}$</strong>
               </div>
             )}
         </div>
         
-        <div className="goal-progress">
-          <div className="progress-bar" style={{border: `2px solid ${progressColor}`}}>
-            <div className="progress-percents" style={
-              {width: `${progressWidth}%`,
-              background: progressColor}}>
-              </div>
-          </div>
-          <p>{returnPercent.toFixed(2)}%</p>
-        </div>
+        {progressRender(goalInfo)}
 
       </div>
       
       <div className="goal-card-footer">
         <div className="goal-line to-bottom"></div>
-        <div className="goal-card-actions">
-          <p>Created: <strong>{createdAt.date}</strong></p>
-          {goal.status === "QUEUED" && (
-            <button type="button" className="success-btn btn-default" onClick={() => changeGoal("activate")}>Activate</button>
-          )}
-          {goal.status === "ACTIVE" && goal.targetReceive <= stats.spent && (
-            <button type="button" className="complete-btn btn-default" onClick={() => changeGoal("complete")}>Complete</button>
-          )}
-          <Link className="warning-btn btn-default" to={`/edit-goal/${goal.id}`}>Edit</Link>
-          <button type="button" className="danger-btn btn-default" onClick={() =>changeGoal("delete")}>Delete</button>
-        </div>
+        {buttonsRender(goalInfo, changeGoal)}
       </div>
     </div>
   )

@@ -10,17 +10,18 @@ import {
   completeGoal as completeGoalController,
   deleteGoal as deleteGoalController
 } from "../controller/goal.controller";
+import { requireAuth } from "../middleware/requireAuth";
 
 
 const router = Router();
 
-router.get("/", getAllGoalsController);
-router.get("/get/:id", getGoalController);
+router.get("/", requireAuth, getAllGoalsController);
+router.get("/get/:id", requireAuth, getGoalController);
 
-router.post("/create", createGoalController);
-router.patch("/update/:id", updateGoalController);
-router.patch("/activate/:id", activateGoalController)
-router.patch("/complete/:id", completeGoalController);
-router.delete("/delete/:id", deleteGoalController)
+router.post("/create", requireAuth, createGoalController);
+router.patch("/update/:id", requireAuth, updateGoalController);
+router.patch("/activate/:id", requireAuth, activateGoalController)
+router.patch("/complete/:id", requireAuth, completeGoalController);
+router.delete("/delete/:id", requireAuth, deleteGoalController)
 
 export default router

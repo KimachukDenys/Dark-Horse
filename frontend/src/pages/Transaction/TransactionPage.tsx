@@ -17,7 +17,7 @@ function TransactionPage() {
     return {
       search: params.get("search"),
       type: params.get("type"),
-      marketId: params.get("marketId"),
+      walletId: params.get("walletId"),
       tradeAble: params.get("tradeAble"),
       itemStatus: params.get("itemStatus"), 
       // orderBy: {}
@@ -52,8 +52,8 @@ function TransactionPage() {
       params.set("itemStatus", filter.itemStatus)
     }
 
-    if(filter.marketId) {
-      params.set("marketId", filter.marketId)
+    if(filter.walletId) {
+      params.set("walletId", filter.walletId)
     }
 
     if(filter.from) {
@@ -71,13 +71,13 @@ function TransactionPage() {
     try {
       const res = await api.get(`/transaction/?${params}`)
       setTransactions(res.data.data);
+      console.log(res)
     } catch (e) {
       console.log(e)
     }
   }
   useEffect(() => {
     filterItems()
-    console.log(filter)
   }, [filter])
 
   const handleFilter = (e: React.MouseEvent<HTMLButtonElement> | React.ChangeEvent<HTMLInputElement>) => {

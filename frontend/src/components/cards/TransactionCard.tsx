@@ -1,13 +1,14 @@
+import type { TransactionType } from "../../types/transaction.types";
+import type { Notification } from "../../types/global.types";
 import { formatDate } from "../../utils/date";
 import { exteriorColor, exteriorCut, exteriorTypes } from "../../types/transaction.types";
 import { generateSteamItemLink, generateCSFloatItemLink} from "../../utils/itemLink";
 import { Link } from "react-router-dom";
 import { api } from "../../api/axios";
-import type { TransactionType } from "../../types/transaction.types";
-import type { Notification } from "../../types/global.types";
-import "../../styles/transaction/txCardStyles.css";
+import { useWallet } from "../../hooks/wallet.context";
 import type React from "react";
 import axios from "axios";
+import "../../styles/transaction/txCardStyles.css";
 
 
 type TransactionCardProps = {
@@ -17,11 +18,13 @@ type TransactionCardProps = {
 };
 
 function TransactionCard({ tx, onDelete, setNotification }: TransactionCardProps) {
+  const {getWallets} = useWallet()
+
   const formatted = formatDate(tx.acquiredAt)
   const quality = tx.item.quality
   const exterior = tx.item.exterior
 
-  //Links 
+  //Links
   const linkSteam = generateSteamItemLink(quality, tx.item.name, exterior)
   const linkCSFloat = generateCSFloatItemLink(tx.item.name)
   
@@ -40,17 +43,18 @@ function TransactionCard({ tx, onDelete, setNotification }: TransactionCardProps
   }
 
   let tradeStatus: {name: string, color: string}
-  const tradeBanDate = new Date(tx.tradeBanUntil)
-  const nextDay = new Date(tx.tradeBanUntil)
-  nextDay.setDate(nextDay.getDate() + 1)
-  const now = new Date()
 
-  if(now < tradeBanDate) {
+  const tradeBanDate = new Date(tx.tradeBanUntil)
+  const dayBeforeTl = new Date(tx.tradeBanUntil)
+  dayBeforeTl.setDate(dayBeforeTl.getDate() - 1)
+  const now = new Date()
+  
+  if(now < dayBeforeTl) {
     tradeStatus = {
       name: "Trade Lock",
       color: "var(--accent-red)"
     }
-  } else if(now < nextDay) {
+  } else if(tradeBanDate > now ) {
     tradeStatus = {
       name: "Possible Available",
       color: "var(--warning)"
@@ -71,6 +75,7 @@ function TransactionCard({ tx, onDelete, setNotification }: TransactionCardProps
         type: "success",
       })
       onDelete()
+      getWallets()
     } catch (e: unknown) {
       if(axios.isAxiosError(e)) {
 
@@ -107,7 +112,7 @@ function TransactionCard({ tx, onDelete, setNotification }: TransactionCardProps
 
       <div className="transaction-header">
         <div className="tx-link-container">
-          <Link to={`/transactions/trade/${tx.id}`} className="info-link">TX #{tx.id}</Link>
+          <Link to={`/transactions/trade/${tx.id}`} className="info-link">#{tx.id}</Link>
           <div className="status-indecator" style={{background: `${tradeStatus.color}`}}></div>
           <p>{tradeStatus.name}</p>
         </div>
@@ -135,9 +140,9 @@ function TransactionCard({ tx, onDelete, setNotification }: TransactionCardProps
               <span className="item-exterior" style={exteriorFontColor}>[{exteriorFormat}]</span>
             )}
             <span>{name}{" "}</span>
-            <strong className="tx-card-price">({tx.price}$)</strong>
+            <strong className="tx-card-price">({Number(tx.price).toFixed(2)}$)</strong>
           </p>
-          <p>Market: {tx.market.name}</p>
+          <p>Market: {tx.wallet.market.name}</p>
           <p>Qty: {tx.quantity}</p>
           <p>Status: {tx.itemStatus}</p>
           <p>Date: {formatted.time}  {formatted.date}</p>

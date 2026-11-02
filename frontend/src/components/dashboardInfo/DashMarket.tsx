@@ -21,10 +21,10 @@ function DashboardMarket({data}: DashMarketProps) {
 
       <div className="market-info">
         <div className="market-highlight">
-          <p>Net: <strong className={`${color}`}>{data.netFlow}$</strong></p>
+          <p>Net: <strong className={`${color}`}>{Number(data.netFlow).toFixed(2)}$</strong></p>
         </div>
         <div className="market-highlight">
-          <p>Open Capital: <strong>{data.openCapital}$</strong></p>
+          <p>Open Capital: <strong>{Number(data.openCapital).toFixed(2)}$</strong></p>
         </div>
         <div className="market-highlight">
           <p>Items open: <strong>{data.openCapitalCount}</strong></p>
@@ -36,14 +36,14 @@ function DashboardMarket({data}: DashMarketProps) {
       <div className="market-stats-info">
         <div className="movement-stats">
           <div className="market-highlight">
-            <p>Purchased: <strong className="danger-color">{data.purchased}$</strong></p>
+            <p>Purchased: <strong className="danger-color">{Number(data.purchased).toFixed(2)}$</strong></p>
           </div>
           <p>AVG <strong>{parseFloat(data.purchasedAvg).toFixed(2)}$</strong></p>
           <p><strong>{data.purchasedCount}</strong> items</p>
         </div>
         <div className="movement-stats">
           <div className="market-highlight">
-            <p>Sales: <strong className="success-color">{data.sales}$</strong></p>
+            <p>Sales: <strong className="success-color">{Number(data.sales).toFixed(2)}$</strong></p>
           </div>
           <p>AVG <strong>{parseFloat(data.salesAvg).toFixed(2)}$</strong></p>
           <p><strong>{data.salesCount}</strong> items</p>

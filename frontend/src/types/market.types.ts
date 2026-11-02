@@ -1,10 +1,16 @@
 export type MarketType = {
   id: number;
   name: string;
-
-  wallet: {
-    id:number;
-    balance: number;
-    currency: ("USD" | "EUR" | "UAH");
-  }
+  hashName: string;
 }
+
+export const MARKET_NAMES = [
+  "Steam",
+  "CSFloat",
+  "DMarket",
+  "SkinPort",
+  "CSMoney",
+  "TradeIT",
+] as const;
+
+export type MarketName = (typeof MARKET_NAMES)[number];

@@ -6,7 +6,8 @@ import {
   getMarket as marketService,
   createMarket as createMarketService,
   deleteMarket as deleteMarketService,
-  updateWalletBalance as updateWalletService
+  updateMarket as updateMarketService,
+  getAvailableMarkets as getAvailableMarketsService,
 } from "../service/market.service.js";
 
 
@@ -57,15 +58,33 @@ export async function getMarket(req: Request, res : Response) {
   }
 }
 
+export async function getAvailableMarkets(req: Request, res: Response) {
+  try {
+    const userId = req.session.userId!
+
+    const markets = await getAvailableMarketsService(userId)
+
+    return res.json({
+      data: markets
+    })
+  } catch (e: unknown) {
+    if(e instanceof Error) {
+      return res.status(500).json({
+        message: e.message
+      })
+    }
+  }
+}
+
 
 export async function createMarket(req: Request, res: Response) {
   try {
-    const result = await createMarketService(req.body);
+    console.log(req.body)
+    const market = await createMarketService(req.body);
 
     res.status(201).json({
       message: "Market created successfully",
-      market: result.newMarket,
-      wallet: result.wallet
+      data: market,
     });
   } catch (e: unknown) {
     if(e instanceof Error && e.message === "Market already exists") {
@@ -100,5 +119,36 @@ export async function deleteMarket(req: Request, res: Response) {
     return res.status(500).json({
       message: "Internal server Error"
     });
+  }
+}
+
+
+export async function updateMarket(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id)
+
+    await updateMarketService(id, req.body)
+
+    res.json({
+      message: "Market updated successfully" 
+    })
+  } catch (e: unknown) {
+    if(e instanceof Error && e.message === "Not enough data to update Market") {
+      res.status(417).json({
+        message: e.message
+      })
+    }
+
+    if(e instanceof Error && e.message === "Market doesn't exist") {
+      res.status(404).json({
+        message: e.message
+      })
+    }
+    
+    if(e instanceof Error) {
+      res.status(500).json({
+        message: e.message
+      })
+    }
   }
 }

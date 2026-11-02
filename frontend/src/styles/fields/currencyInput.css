@@ -1,0 +1,14 @@
+.currency-input-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  align-items: center;
+  gap: 22px;
+}
+
+.currency-select-buttons {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  gap: 20px;
+}

@@ -13,7 +13,8 @@ import {
 
 export async function getAllGoals(req: Request, res: Response) {
   try {
-    const goals = await getAllGoalsService()
+    const userId = req.session.userId!
+    const goals = await getAllGoalsService(userId)
 
     res.json({
       message: "Goals gets successfully",
@@ -37,9 +38,10 @@ export async function getAllGoals(req: Request, res: Response) {
 
 export async function getGoal(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id);
 
-    const goal = await getGoalService(id)
+    const goal = await getGoalService(userId, id)
     
     res.json({
       message: "Goal got successfully",
@@ -62,7 +64,8 @@ export async function getGoal(req: Request, res: Response) {
 
 export async function createGoal(req: Request, res: Response) {
   try {
-    const newGoal = await createGoalService(req.body)
+    const userId = req.session.userId!
+    const newGoal = await createGoalService(userId, req.body)
 
     res.status(203).json({
       message: "Goal created successfully",
@@ -80,9 +83,10 @@ export async function createGoal(req: Request, res: Response) {
 
 export async function updateGoal(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id)
 
-    const updateGoal = await updateGoalService(id, req.body)
+    const updateGoal = await updateGoalService(userId, id, req.body)
 
     res.json({
       message: "Goal updated successfully",
@@ -104,9 +108,10 @@ export async function updateGoal(req: Request, res: Response) {
 
 export async function activateGoal(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id)
 
-    const  activeGoal = await activateGoalService(id)
+    const  activeGoal = await activateGoalService(userId, id)
 
     res.json({
       message: "Goal activated successfully",
@@ -142,9 +147,10 @@ export async function activateGoal(req: Request, res: Response) {
 
 export async function completeGoal(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id);
     
-    const complGoal = await completeGoalService(id, req.body)
+    const complGoal = await completeGoalService(userId, id, req.body)
 
     res.status(203).json({
       message: "Goal completed successfully",
@@ -174,9 +180,10 @@ export async function completeGoal(req: Request, res: Response) {
 
 export async function deleteGoal(req: Request, res: Response) {
   try {
+    const userId = req.session.userId!
     const id = Number(req.params.id)
 
-    const delGoal = await deleteGoalService(id)
+    const delGoal = await deleteGoalService(userId, id)
 
     res.json({
       message: "Goal deleted successfully",
